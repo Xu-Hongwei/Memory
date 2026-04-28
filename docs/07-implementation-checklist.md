@@ -203,6 +203,8 @@ memory_candidates
 policy_decisions
 memory_items
 memory_versions
+consolidation_candidates
+memory_entities
 memory_relations
 retrieval_logs
 ```
@@ -213,9 +215,10 @@ retrieval_logs
 memory_embeddings
 consolidation_jobs
 memory_feedback
-memory_entities
 memory_edges
 ```
+
+当前 `memory_embeddings` 已经进入实现：本地使用 `(memory_id, model)` 缓存远程 embedding 向量，`search_memory` 支持 `retrieval_mode=semantic|hybrid`，远程 API / CLI 可以显式为单条记忆或一批缺失记忆建立向量缓存，并能用 v1/v2 fixture 和 category summary 对比 keyword / semantic / hybrid / guarded_hybrid 的召回表现。
 
 ## 6. SQLite FTS5
 
@@ -362,15 +365,32 @@ def compose_context(task: str, memories: list[MemoryItemRead], token_budget: int
 执行记忆巩固。
 
 ```python
-def consolidate(scope: str | None = None, mode: str = "dedupe") -> None:
+def propose_consolidations(
+    scope: str | None = None,
+    memory_type: MemoryType | None = None,
+    min_group_size: int = 2,
+) -> list[ConsolidationCandidateRead]:
+    ...
+
+
+def commit_consolidation(candidate_id: str, reason: str | None = None) -> MemoryItemRead:
     ...
 ```
 
-MVP 可以先只做：
+当前 MVP 先只做保守巩固：
 
-- 合并完全重复记忆
-- 标记长时间未使用的记忆
-- 为相似候选生成人工 review 任务
+- 只选择 `active` 且 `confirmed/likely` 的记忆。
+- 只合并同 `scope + memory_type + subject` 的记忆。
+- 先生成巩固候选，不直接改写长期记忆。
+- commit 后生成新 consolidated 记忆。
+- 来源记忆标记为 `superseded`，并保留版本链。
+
+后续再加入：
+
+- 语义相似聚类。
+- LLM 辅助摘要。
+- 长时间未使用记忆的归档建议。
+- 人工 review 队列和 CLI 审查入口。
 
 ## 8. FastAPI 路由
 
@@ -386,11 +406,37 @@ POST /policy/evaluate/{candidate_id}
 POST /memories/commit
 GET  /memories/{memory_id}
 GET  /memories/search
+GET  /retrieval/logs
+GET  /retrieval/logs/{log_id}
+POST /retrieval/logs/{log_id}/feedback
+GET  /memories/usage
+GET  /memories/{memory_id}/usage
+POST /maintenance/reviews/from-usage
+GET  /maintenance/reviews
+GET  /maintenance/reviews/{review_id}
+POST /maintenance/reviews/{review_id}/resolve
 PATCH /memories/{memory_id}
+POST /memories/{memory_id}/stale
 POST /memories/{memory_id}/archive
+POST /memories/{memory_id}/supersede
 
 POST /context/compose
-POST /consolidation/run
+POST /recall/task
+POST /recall/orchestrated
+POST /recall/graph
+POST /graph/entities
+GET  /graph/entities
+POST /graph/relations
+GET  /graph/relations
+GET  /graph/conflicts
+POST /graph/conflict-reviews/from-conflicts
+GET  /graph/conflict-reviews
+GET  /graph/conflict-reviews/{review_id}
+POST /graph/conflict-reviews/{review_id}/resolve
+POST /consolidation/propose
+GET  /consolidation/candidates
+POST /consolidation/{candidate_id}/commit
+POST /consolidation/{candidate_id}/reject
 ```
 
 API 第一版不需要复杂权限，但要预留：
@@ -399,6 +445,89 @@ API 第一版不需要复杂权限，但要预留：
 - `agent_id`
 - `workspace_id`
 - `repo_path`
+
+## 8.1 CLI 审查入口
+
+冲突审查第一版先提供命令行入口，避免一开始就把复杂度放到 Web UI：
+
+```text
+memoryctl reviews generate
+memoryctl reviews list
+memoryctl reviews show <review_id>
+memoryctl reviews resolve <review_id> --action accept_new
+memoryctl reviews resolve <review_id> --action keep_existing
+memoryctl reviews resolve <review_id> --action keep_both_scoped
+memoryctl reviews resolve <review_id> --action ask_user
+memoryctl reviews resolve <review_id> --action archive_all
+memoryctl maintenance generate
+memoryctl maintenance list
+memoryctl maintenance show <review_id>
+memoryctl maintenance resolve <review_id> --action mark_stale
+memoryctl maintenance resolve <review_id> --action archive
+```
+
+验收标准：
+
+- 可以从当前 graph conflict 生成 pending review。
+- 可以按 status、scope、relation_type 列出 review。
+- `show` 能看到冲突实体、目标实体、关系和来源记忆。
+- `resolve` 后记忆生命周期状态与 API 行为一致。
+- 支持 `--json`，方便后续接 Web UI 或脚本。
+
+## 8.2 Remote Adapter 调试入口
+
+远程阶段先做可替换 adapter，不直接把远程结果写入长期记忆。
+
+代码：
+
+```text
+src/memory_system/remote.py
+tests/test_remote_adapters.py
+```
+
+环境变量：
+
+```text
+MEMORY_REMOTE_BASE_URL
+MEMORY_REMOTE_API_KEY
+MEMORY_REMOTE_TIMEOUT_SECONDS
+MEMORY_REMOTE_LLM_EXTRACT_PATH
+MEMORY_REMOTE_EMBEDDING_PATH
+MEMORY_REMOTE_HEALTH_PATH
+```
+
+API：
+
+```text
+GET  /remote/status
+GET  /remote/health
+POST /remote/extract/{event_id}
+POST /remote/evaluate-candidates
+POST /candidates/from-event/{event_id}/remote
+POST /remote/embed
+```
+
+CLI：
+
+```text
+memoryctl remote status
+memoryctl remote health
+memoryctl remote extract <event_id>
+memoryctl remote evaluate --event-id <event_id>
+memoryctl remote import <event_id>
+memoryctl remote embed "memory text"
+```
+
+验收标准：
+
+- `remote status` 不泄露 API key。
+- `remote extract` 返回 `RemoteCandidateExtractionResult`。
+- `remote evaluate` 返回 `RemoteCandidateEvaluationResult`，不写候选表。
+- `remote import` 返回 `RemoteCandidateImportResult`，只创建 pending candidate。
+- `remote embed` 返回向量数量和维度。
+- `remote extract` 不会写入 `memory_candidates`。
+- 远程候选导入后仍然必须走 `evaluate_candidate` 和 `commit_memory`。
+- 远程错误以清晰的 502/503 或 CLI 错误返回。
 
 ## 9. MVP 开发顺序
 
@@ -444,9 +573,39 @@ API 第一版不需要复杂权限，但要预留：
 
 ### Step 7：巩固任务
 
-- 合并重复记忆
-- 归档低价值记忆
-- 生成反思型记忆
+- 生成 consolidation candidate
+- commit 后写入 consolidated 记忆
+- 将来源记忆标记为 superseded
+- 验证旧记忆不再参与默认检索
+- 后续再加入低价值归档和反思型记忆
+
+### Step 8：轻量知识图谱
+
+- 建 `memory_entities`
+- 复用/扩展 `memory_relations`
+- 支持 repo、file、tool、command、error、solution 等实体
+- 支持从关系挂载 `source_memory_ids`
+- 实现 `graph_recall_for_task`
+- 验证图谱召回仍遵守 scope、status 和 confidence
+
+### Step 9：图谱冲突检测
+
+- 按 `from_entity + relation_type` 分组关系
+- 如果同组关系指向多个不同 target，生成冲突结果
+- 只使用 `confirmed/likely` 关系
+- 只使用仍然 `active` 的来源记忆
+- 验证同目标重复关系不误报
+
+### Step 10：冲突解决工作流
+
+- 将 graph conflict 转成 conflict review item
+- 为 review 生成推荐动作和推荐保留记忆
+- 支持 `accept_new`
+- 支持 `keep_existing`
+- 支持 `keep_both_scoped`
+- 支持 `archive_all`
+- 支持 `ask_user`
+- resolve 后写入记忆版本链
 
 ## 10. 测试用例
 
@@ -542,6 +701,86 @@ update: 旧记忆标记为 superseded，新记忆 active。
 write: troubleshooting，包含问题、经验、解决方式。
 ```
 
+### 10.7 自动巩固
+
+已有记忆：
+
+```text
+用户偏好：技术文档默认用中文。
+用户偏好：回答时区分事实和推断。
+scope=global, memory_type=user_preference, subject=文档风格。
+```
+
+期望：
+
+```text
+propose_consolidations: 生成 1 条巩固候选。
+commit_consolidation: 新 consolidated 记忆 active，两个来源记忆 superseded。
+search_memory: 只返回 consolidated 记忆。
+```
+
+### 10.8 图谱召回
+
+已有实体和关系：
+
+```text
+repo:C:/workspace/demo -> has_start_command -> pnpm dev
+关系来源记忆：项目启动命令是 pnpm dev。
+```
+
+输入：
+
+```text
+这个项目启动失败了，帮我排查。
+scope=repo:C:/workspace/demo
+```
+
+期望：
+
+```text
+graph_recall_for_task: 匹配当前 repo 实体，沿 has_start_command 关系召回启动命令记忆。
+如果来源记忆已经 superseded，或者关系 confidence=inferred，则不注入上下文。
+```
+
+### 10.9 图谱冲突检测
+
+已有关系：
+
+```text
+repo:C:/workspace/demo -> has_start_command -> npm run dev
+repo:C:/workspace/demo -> has_start_command -> pnpm dev
+```
+
+期望：
+
+```text
+detect_graph_conflicts: 返回 1 条冲突。
+from_entity 是当前 repo。
+relation_type 是 has_start_command。
+target_entities 包含 npm run dev 和 pnpm dev。
+如果其中一条关系只来自 stale/superseded 记忆，则不报冲突。
+```
+
+### 10.10 冲突解决
+
+已有 review：
+
+```text
+repo -> has_start_command -> npm run dev
+repo -> has_start_command -> pnpm dev
+recommended_action=accept_new
+recommended_keep_memory=pnpm dev 记忆
+```
+
+期望：
+
+```text
+resolve_conflict_review(action=accept_new)
+旧 npm run dev 记忆 superseded
+新 pnpm dev 记忆 active
+同一个 graph conflict 不再出现
+```
+
 ## 11. 关键风险
 
 ### 11.1 过度自动写入
@@ -607,4 +846,3 @@ write: troubleshooting，包含问题、经验、解决方式。
 - 能用 pytest 固定关键行为
 
 只要做到这些，后续加入向量检索、反思巩固和多智能体共享才有稳定基础。
-

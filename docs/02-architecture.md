@@ -224,3 +224,24 @@ Verifier 负责验证事实。
 
 适合成熟系统。
 
+## 4. Remote Adapter 层
+
+远程能力不直接替代本地治理层，而是作为可替换的旁路能力：
+
+```text
+Event Log
+  -> Local Rule Extractor
+  -> Remote LLM Extractor
+  -> Candidate Comparison
+  -> Local Write Policy Gate
+  -> Structured Store
+```
+
+当前实现中，远程 LLM 只能返回候选记忆，不能绕过本地 `evaluate_candidate`、人工确认、生命周期和审计记录。远程 embedding 也只负责返回向量，暂不直接写入索引。
+
+这样设计的原因是：
+
+- 远程模型可以提升提取质量，但不应该拥有最终写入权。
+- 本地规则可以作为回归基线，方便比较远程结果是否漂移。
+- API key、超时、失败率和模型版本都需要被隔离在 adapter 层。
+- 后续接 OpenAI、私有模型或自建服务时，只需要替换 adapter，不需要重写记忆核心。

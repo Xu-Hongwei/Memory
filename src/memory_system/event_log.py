@@ -28,6 +28,9 @@ SENSITIVE_VALUE_PATTERNS = [
         re.I,
     ),
     re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._\-]{16,}"),
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)"),
+    re.compile(r"(?<!\d)\d{17}[\dXx](?!\d)"),
 ]
 
 
@@ -56,7 +59,10 @@ def _redact_string(value: str) -> tuple[str, bool]:
 
     redacted = SENSITIVE_VALUE_PATTERNS[0].sub(replace_key_value, value)
     redacted, bearer_count = SENSITIVE_VALUE_PATTERNS[1].subn("Bearer [REDACTED]", redacted)
-    sanitized = sanitized or bearer_count > 0
+    redacted, email_count = SENSITIVE_VALUE_PATTERNS[2].subn("[REDACTED_EMAIL]", redacted)
+    redacted, phone_count = SENSITIVE_VALUE_PATTERNS[3].subn("[REDACTED_PHONE]", redacted)
+    redacted, id_count = SENSITIVE_VALUE_PATTERNS[4].subn("[REDACTED_ID]", redacted)
+    sanitized = sanitized or bearer_count > 0 or email_count > 0 or phone_count > 0 or id_count > 0
     return redacted, sanitized
 
 

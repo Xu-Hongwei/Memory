@@ -4,8 +4,15 @@ version = "0.1.0"
 description = "A conservative event-log-first memory system prototype for agents."
 requires-python = ">=3.11"
 dependencies = [
+  "fastapi>=0.136.0",
+  "huggingface_hub>=0.36.0",
   "pydantic>=2.0",
+  "requests>=2.31.0",
+  "uvicorn>=0.46.0",
 ]
+
+[project.scripts]
+memoryctl = "memory_system.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -14,4 +21,3 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-

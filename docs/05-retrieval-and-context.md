@@ -165,7 +165,29 @@ confirmed > likely > inferred > unknown
 - 当前端口
 - 临时运行状态
 
-## 5. 上下文组装
+## 5. Recall Orchestrator
+
+当前代码新增 `src/memory_system/recall_orchestrator.py`，作为智能体调用记忆的推荐入口。它不是新的底层检索算法，而是把已有能力编排成一条可控链路：
+
+```text
+task
+  -> memory-needed check
+  -> RecallPlanner
+  -> keyword / guarded_hybrid / selective_llm_guarded_hybrid
+  -> optional graph recall
+  -> Context Composer
+  -> retrieval_logs(source=orchestrated_recall)
+```
+
+`strategy="auto"` 的选择规则：
+
+- 没有远程客户端：使用本地 keyword recall。
+- 有 remote embedding：使用 `guarded_hybrid`。
+- 有 remote embedding + remote LLM：使用 `selective_llm_guarded_hybrid`。
+
+Orchestrator 的价值在于统一记录 retrieved / used / skipped / warnings / steps。这样后续做反馈、降权、遗忘和 no-match 调参时，不需要从多个分散日志里拼事实。
+
+## 6. 上下文组装
 
 Context Composer 应该输出紧凑、可解释、任务相关的内容。
 
@@ -196,7 +218,7 @@ Relevant memory:
 - 对用户偏好类记忆保持简洁
 - 对排错经验保留问题和解决方式
 
-## 6. 使用记忆时的回答原则
+## 7. 使用记忆时的回答原则
 
 智能体使用记忆时应该区分：
 
@@ -213,7 +235,7 @@ Relevant memory:
 
 这种回答比直接说“项目就是这样启动”更安全。
 
-## 7. 检索失败处理
+## 8. 检索失败处理
 
 如果没有检索到相关记忆，不应该编造。
 
@@ -231,7 +253,7 @@ Relevant memory:
 我会把它作为线索，而不是直接当成当前事实。
 ```
 
-## 8. 记忆预算
+## 9. 记忆预算
 
 上下文窗口有限，因此需要记忆预算。
 
@@ -253,3 +275,124 @@ Relevant memory:
 4. 直接影响操作安全的规则
 5. 用户明确偏好
 
+## 10. 检索使用日志
+
+检索优化不能只靠感觉，需要记录每次任务里“想起了什么”和“实际用了什么”。
+
+当前实现会在这些路径写入 `retrieval_logs`：
+
+```text
+search_memory        -> source=search
+POST /context/compose -> source=context
+recall_for_task      -> source=task_recall
+graph_recall_for_task -> source=graph_recall
+orchestrate_recall   -> source=orchestrated_recall
+```
+
+每条日志至少记录：
+
+```text
+query / task / task_type / scope / source
+retrieved_memory_ids
+used_memory_ids
+skipped_memory_ids
+warnings
+metadata
+feedback / feedback_reason
+```
+
+这样后续可以做三件事：
+
+- 排序优化：分析哪些记忆经常被召回但没有进入 context。
+- 降权和遗忘：分析哪些记忆长期没有被使用，或反馈为 `not_useful`。
+- 策略调试：对比 `task_recall`、`graph_recall` 和 `orchestrated_recall` 在不同任务类型下的实际命中情况。
+
+当前维护建议保持保守：
+
+```text
+keep: 使用信号正常，或 useful 反馈更强。
+review: 多次被召回但从未使用，需要人工复核是否太宽泛或已不相关。
+mark_stale: active 记忆多次 not_useful，建议退出默认检索。
+archive: stale 记忆仍然无用，建议只保留历史审计。
+```
+
+这些建议不会自动执行状态变更。真正的 `mark_stale` 和 `archive` 仍然要走显式生命周期操作。
+
+当前已经有维护审查队列：
+
+```text
+usage stats -> maintenance review item -> resolve -> lifecycle change
+```
+
+也就是说，系统可以批量发现低质量记忆，但仍然需要显式 resolve 才会改变长期记忆状态。
+
+## 11. 远程 Embedding 的位置
+
+当前远程 embedding 只完成“调用和验证”：
+
+```text
+texts -> RemoteEmbeddingClient -> vectors
+```
+
+它还没有接入默认召回排序，也没有写入向量索引。这样可以先验证三件事：
+
+- 远程服务是否稳定。
+- 向量维度是否一致。
+- 调用延迟是否能接受。
+
+等远程 embedding 质量和速度稳定后，再把它接入混合检索：
+
+```text
+FTS5 keyword recall
++ scope / type / confidence filters
++ remote embedding vector recall
++ local rerank
++ context budget composer
+```
+
+远程向量只能影响候选召回和排序，不能直接决定是否注入上下文；最终仍然要经过 status、scope、confidence 和 token budget 过滤。
+
+## 12. 当前 Hybrid Search 实现
+
+当前已经加入第一版本地向量缓存和混合检索：
+
+```text
+memory_items
+  -> remote embed-memory
+  -> remote embed-backfill
+  -> memory_embeddings(memory_id, model, vector_json)
+  -> search_memory(retrieval_mode=semantic|hybrid, query_embedding=...)
+```
+
+默认 `search_memory` 仍然是 `keyword`，因此现有 FTS / LIKE 行为不会被远程服务影响。只有显式传入 `retrieval_mode="semantic"` 或 `retrieval_mode="hybrid"`，并提供 `query_embedding` 时，向量相似度才会参与排序。
+
+API / CLI 入口：
+
+```text
+POST /memories/{memory_id}/embedding/remote
+POST /memories/embeddings/remote-backfill
+POST /memories/search/remote-hybrid
+POST /memories/search/remote-guarded-hybrid
+POST /remote/evaluate-retrieval
+
+memoryctl remote embed-memory <memory_id>
+memoryctl remote embed-backfill --scope <scope>
+memoryctl remote hybrid-search "<query>"
+memoryctl remote guarded-hybrid-search "<query>"
+memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval.jsonl
+memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_v2.jsonl
+```
+
+实现约束：
+
+- 向量按 `(memory_id, model)` 缓存，同一条记忆可以有多个模型版本。
+- `semantic` 模式只返回已有同维度向量的记忆。
+- `hybrid` 模式会把关键词、scope、type、confidence 和 cosine similarity 合并排序。
+- 远程 embedding 只在显式 API / CLI 调用时发生；普通写入和普通测试不依赖网络。
+
+Batch / evaluation additions:
+
+- `embed-backfill` only fills active memories missing the selected model embedding; it can be limited by scope and memory_type.
+- `evaluate-retrieval` compares keyword / semantic / hybrid against a fixture and reports false negatives plus unexpected aliases.
+- `evaluate-retrieval` also reports per-category metrics, which is useful when comparing the 50-case v1 fixture with the 200-case v2 fixture.
+- `guarded-hybrid-search` adds a second-stage guard: low similarity is rejected; close top-1/top-2 scores first go through a lightweight local intent rerank, and only unresolved close matches are marked ambiguous.

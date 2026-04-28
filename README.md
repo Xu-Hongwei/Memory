@@ -48,14 +48,269 @@ TypeScript 仍然可以作为后续方向，用于：
 
 ## 3. 当前代码状态
 
-已实现 Phase 1 的最小 Event Log MVP：
+已实现 Phase 1 到 Phase 6-lite 的本地 MVP，并加入了检索使用日志和 Recall Orchestrator：
 
 ```text
 src/memory_system/
-  schemas.py      Pydantic 事件结构
-  event_log.py    SQLite 事件日志、查询和基础敏感信息处理
+  schemas.py        Pydantic 事件、候选记忆、长期记忆和检索结构
+  event_log.py      SQLite 事件日志、查询和基础敏感信息处理
+  memory_store.py   结构化候选记忆、写入门禁、长期记忆、版本记录和 FTS 检索
+  context_composer.py  检索记忆的上下文组装和预算控制
+  remote.py         Remote LLM / embedding HTTP adapter
+  recall_orchestrator.py  统一召回编排层
+  graph_recall.py   轻量知识图谱召回
+  cli.py            conflict review 的命令行审查入口
+  api.py            FastAPI 接口层
 tests/
+  test_cli.py
+  test_api.py
+  test_remote_adapters.py
   test_event_log.py
+  test_memory_store.py
+  test_golden_write_policy.py
+  test_golden_retrieval_context.py
+  test_golden_lifecycle.py
+  test_golden_task_recall.py
+  test_golden_consolidation.py
+  test_golden_graph_recall.py
+  test_golden_graph_conflicts.py
+  test_golden_conflict_reviews.py
+  test_lifecycle.py
+  test_task_recall.py
+  test_recall_orchestrator.py
+  test_consolidation.py
+  test_memory_graph.py
+  test_graph_conflicts.py
+  test_review_and_context.py
+  fixtures/golden_cases/generate_write_policy.py
+  fixtures/golden_cases/write_policy.jsonl
+  fixtures/golden_cases/generate_retrieval_context.py
+  fixtures/golden_cases/retrieval_context.jsonl
+  fixtures/golden_cases/generate_lifecycle.py
+  fixtures/golden_cases/lifecycle.jsonl
+  fixtures/golden_cases/generate_task_recall.py
+  fixtures/golden_cases/task_recall.jsonl
+  fixtures/golden_cases/generate_consolidation.py
+  fixtures/golden_cases/consolidation.jsonl
+  fixtures/golden_cases/generate_graph_recall.py
+  fixtures/golden_cases/graph_recall.jsonl
+  fixtures/golden_cases/generate_graph_conflicts.py
+  fixtures/golden_cases/graph_conflicts.jsonl
+  fixtures/golden_cases/generate_conflict_reviews.py
+  fixtures/golden_cases/conflict_reviews.jsonl
+```
+
+候选记忆已经不只是关键词触发，而是会保留结构化分析：
+
+```text
+claim
+evidence_type
+time_validity
+reuse_cases
+scores.long_term / evidence / reuse / risk / specificity
+```
+
+写入门禁会基于这些结构化字段输出 `structured_reason`，再决定 `write / reject / ask_user / merge / update`。
+
+Phase 5 先实现了一个保守的规则版自动巩固：
+
+- 只巩固 `active` 且 `confidence` 为 `confirmed/likely` 的记忆。
+- 只把同 `scope + memory_type + subject` 的记忆归为一组。
+- 先生成 `consolidation_candidate`，不直接改写长期记忆。
+- 人工或 API commit 后，生成一条新的 consolidated 记忆，并把来源记忆标记为 `superseded`。
+- 巩固过程会写入 `memory_versions`，旧记忆退出默认检索，但历史可追溯。
+
+Phase 6-lite 先实现轻量知识图谱：
+
+- `memory_entities` 保存 repo、file、tool、command、error、solution 等实体。
+- `memory_relations` 保存实体之间的关系，并可挂载 `source_memory_ids`。
+- `graph_recall_for_task(...)` 会从任务文本和当前 scope 找 seed entities，再沿 confirmed/likely 关系召回相关记忆。
+- 图谱召回仍然尊重 `active` 状态和 scope 边界，旧记忆和低置信关系不会强行注入上下文。
+- `detect_graph_conflicts(...)` 会检测同一实体的同一种关系是否指向多个不同目标，例如同一个 repo 同时存在两个启动命令。
+- `create_conflict_reviews(...)` 和 `resolve_conflict_review(...)` 会把冲突转成待审查项，并支持 `accept_new / keep_existing / keep_both_scoped / ask_user / archive_all` 等解决动作。
+
+Recall Orchestrator 现在作为智能体接入记忆的推荐入口：
+
+- `orchestrate_recall(...)` 会先判断当前任务是否值得召回记忆，像 `ok` / `谢谢` 这类低记忆需求消息会直接跳过。
+- 默认本地链路使用 `RecallPlanner -> keyword search -> context composer`。
+- 如果传入 remote embedding，会自动升级到 `guarded_hybrid`；如果同时传入 remote LLM，会使用 `selective_llm_guarded_hybrid`。
+- 可选合并图谱召回结果，但最终仍然统一经过 `active`、scope、confidence、token budget 和 no-match 保护。
+- 每次编排都会写入 `retrieval_logs(source=orchestrated_recall)`，记录 retrieved / used / skipped / warnings / steps，方便后续做反馈和遗忘。
+
+黄金测试集当前是 2000 条固定回归样本，由 `tests/fixtures/golden_cases/generate_write_policy.py`
+生成并写入 `tests/fixtures/golden_cases/write_policy.jsonl`。样本不是复制网络语料，而是参考主流记忆框架的分层共识后改写出的日常交流、工程协作和排错场景。
+
+当前覆盖：
+
+```text
+长期偏好正例：300
+日常喜欢表达反例：140
+临时状态反例：170
+已验证项目事实：180
+工具/流程规则：140
+已验证排错经验：150
+敏感信息反例：120
+低证据推断：120
+重复事实合并：110
+冲突事实复核：110
+普通/未验证交流反例：160
+纯提问反例：80
+情绪/闲聊反例：80
+显式 workflow：70
+显式 environment_fact：70
+```
+
+这批样本已经推动了两处策略收紧：
+
+- `喜欢` 只有同时指向回答、文档、代码、语言、格式等可复用对象时才进入长期偏好候选。
+- `临时状态` 作为被讨论的对象不会被误判为临时请求，但 `这次 / 本轮 / 暂时 / temporarily` 这类作用域提示仍会阻止长期写入。
+
+检索与上下文黄金集当前是 400 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_retrieval_context.py` 生成并写入
+`tests/fixtures/golden_cases/retrieval_context.jsonl`。
+
+这组样本现在定位为本地检索/上下文机制回归集，而不是真实语义召回基准。它大量使用 `RET_*` / `CONTEXT_*` 人工标记，目的是稳定验证 scope 优先级、memory_type 过滤、inactive 排除、confirmed 排序、limit、token_budget 和 warning；真实自然语言 query 改写与 no-match 能力主要由 `semantic_retrieval_cn.jsonl`、`semantic_retrieval_v2.jsonl` 和 `semantic_retrieval_public.jsonl` 覆盖。
+
+当前覆盖：
+
+```text
+当前 repo scope 优先：60
+memory_type 过滤：50
+global fallback：40
+inactive 记忆排除：40
+confirmed 优先于 likely：40
+limit 截断：30
+confirmed 记忆注入上下文：50
+inactive 记忆不注入上下文：30
+token_budget 截断：30
+低置信/未验证 warning：30
+```
+
+生命周期黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_lifecycle.py` 生成并写入
+`tests/fixtures/golden_cases/lifecycle.jsonl`。
+
+当前覆盖：
+
+```text
+标记 stale 后不再检索：75
+archive 后不再检索：75
+新候选 supersede 旧记忆：75
+stale 后 archive 的版本链：75
+```
+
+自然语言任务召回黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_task_recall.py` 生成并写入
+`tests/fixtures/golden_cases/task_recall.jsonl`。
+
+当前覆盖：
+
+```text
+写启动说明时召回文档偏好、启动命令和验证规则：60
+排错任务召回 troubleshooting 和环境事实：50
+测试验证任务召回 pytest、ruff 和历史排错经验：50
+项目结构任务召回模块事实和文档流程：40
+偏好任务召回用户长期偏好：40
+inactive 记忆不被自然语言任务召回：40
+其他 repo 记忆不串入当前 repo：20
+```
+
+自动巩固黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_consolidation.py` 生成并写入
+`tests/fixtures/golden_cases/consolidation.jsonl`。
+
+当前覆盖：
+
+```text
+合并用户偏好：60
+合并项目事实：60
+跨 scope 不合并：45
+不同 memory_type 不合并：45
+inactive 记忆不参与巩固：45
+低置信记忆不参与巩固：45
+```
+
+前五组黄金测试集合计 3300 条：写入门禁 2000 条、检索与上下文 400 条、生命周期 300 条、自然语言任务召回 300 条、自动巩固 300 条。
+
+知识图谱召回黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_graph_recall.py` 生成并写入
+`tests/fixtures/golden_cases/graph_recall.jsonl`。
+
+当前覆盖：
+
+```text
+repo 实体召回：60
+file 实体召回：50
+tool 实体召回：50
+error -> solution 召回：50
+跨 scope 图谱防串扰：40
+旧记忆不被图谱召回：30
+低置信关系不被强召回：20
+```
+
+前六组黄金测试集合计 3600 条。
+
+图谱冲突黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_graph_conflicts.py` 生成并写入
+`tests/fixtures/golden_cases/graph_conflicts.jsonl`。
+
+当前覆盖：
+
+```text
+启动命令冲突：80
+数据库冲突：60
+默认语言冲突：50
+同目标重复关系不误报：40
+跨 scope 冲突不串扰：30
+inactive 来源不参与冲突：20
+低置信关系不参与冲突：20
+```
+
+前七组黄金测试集合计 3900 条。
+
+冲突解决黄金集当前是 300 条固定回归样本，由
+`tests/fixtures/golden_cases/generate_conflict_reviews.py` 生成并写入
+`tests/fixtures/golden_cases/conflict_reviews.jsonl`。
+
+当前覆盖：
+
+```text
+接受新事实并 supersede 旧记忆：80
+保留已有事实并 supersede 新记忆：50
+全部归档：40
+转人工确认：30
+重复 pending review 不重复生成：30
+同目标关系不生成 review：30
+inactive 或低置信关系不生成 review：40
+```
+
+当前黄金测试集总量为 4950 条。新增的 `semantic_retrieval_cn.jsonl` 为 150 条中文语义召回样本，覆盖工程协作、记忆规则、隐私边界、日常偏好和 no-match。
+
+当前还支持：
+
+```text
+list_candidates(status="pending")
+edit_candidate(candidate_id, ...)
+approve_candidate(candidate_id)
+reject_candidate(candidate_id)
+compose_context(task, memories, token_budget=...)
+propose_consolidations(scope=..., memory_type=...)
+commit_consolidation(candidate_id)
+reject_consolidation(candidate_id)
+upsert_entity(entity)
+create_relation(relation)
+graph_recall_for_task(task, store, scope=...)
+detect_graph_conflicts(scope=..., relation_type=...)
+create_conflict_reviews(scope=..., relation_type=...)
+resolve_conflict_review(review_id, action=...)
+list_retrieval_logs(source=..., memory_id=...)
+add_retrieval_feedback(log_id, feedback=...)
+get_memory_usage_stats(memory_id)
+list_memory_usage_stats(recommended_action=...)
+create_maintenance_reviews(scope=..., recommended_action=...)
+resolve_maintenance_review(review_id, action=...)
+RemoteLLMClient(...).extract_candidates(event)
+RemoteEmbeddingClient(...).embed_texts([...])
 ```
 
 运行测试：
@@ -64,7 +319,65 @@ tests/
 python -m pytest
 ```
 
-最小使用示例：
+冲突审查 CLI：
+
+```bash
+memoryctl --db data/memory.sqlite reviews generate --scope repo:C:/workspace/demo
+memoryctl --db data/memory.sqlite reviews list --status pending
+memoryctl --db data/memory.sqlite reviews show <review_id>
+memoryctl --db data/memory.sqlite reviews resolve <review_id> --action accept_new --reason "verified from package.json"
+```
+
+维护建议审查 CLI：
+
+```bash
+memoryctl --db data/memory.sqlite maintenance generate --scope repo:C:/workspace/demo
+memoryctl --db data/memory.sqlite maintenance list --status pending
+memoryctl --db data/memory.sqlite maintenance show <review_id>
+memoryctl --db data/memory.sqlite maintenance resolve <review_id> --action mark_stale --reason "usage review accepted"
+```
+
+远程适配器调试 CLI：
+
+```bash
+$env:DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# DASHSCOPE_API_KEY should already be configured in the environment.
+memoryctl --db data/memory.sqlite remote status
+memoryctl --db data/memory.sqlite remote health
+memoryctl --db data/memory.sqlite remote extract <event_id> --json
+memoryctl --db data/memory.sqlite remote import <event_id> --json
+memoryctl --db data/memory.sqlite remote evaluate --event-id <event_id> --json
+memoryctl --db data/memory.sqlite remote embed "memory text" --json
+memoryctl --db data/memory.sqlite remote embed-memory <memory_id> --json
+memoryctl --db data/memory.sqlite remote embed-backfill --scope repo:C:/workspace/demo --json
+memoryctl --db data/memory.sqlite remote hybrid-search "部署前要检查什么" --scope repo:C:/workspace/demo --json
+memoryctl --db data/memory.sqlite remote guarded-hybrid-search "部署前要检查什么" --scope repo:C:/workspace/demo --json
+memoryctl --db data/memory.sqlite remote selective-llm-guarded-hybrid-search "当前服务的 SLA 数字是多少？" --scope repo:C:/workspace/demo --json
+memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval.jsonl --json
+memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_v2.jsonl --json
+memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_cn.jsonl --json
+memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --json
+```
+
+外部公开记忆数据集只作为参考语料，原始数据不进入仓库回归 fixture；当前已落地一组 public-inspired 合成召回 fixture。下载位置和使用方式见 `docs/12-public-memory-datasets.md`。
+
+当前默认远程模型名写在 `remote.py` 中：
+
+```text
+LLM: qwen3.6-flash
+Embedding: tongyi-embedding-vision-flash-2026-03-06
+```
+
+DashScope/百炼模式下，LLM 使用兼容模式 `/chat/completions`；vision embedding 使用原生 multimodal embedding endpoint。
+
+开发环境也可以直接用模块方式运行：
+
+```bash
+$env:PYTHONPATH = "src"
+python -m memory_system.cli --db data/memory.sqlite reviews list --status pending
+```
+
+事件日志示例：
 
 ```python
 from memory_system import EventCreate, EventLog
@@ -81,6 +394,108 @@ event = log.record_event(
 )
 
 loaded = log.get_event(event.id)
+```
+
+候选记忆和长期记忆示例：
+
+```python
+from memory_system import EventCreate, EventLog, MemoryStore, SearchMemoryInput
+
+db_path = "data/memory.sqlite"
+events = EventLog(db_path)
+memories = MemoryStore(db_path)
+
+event = events.record_event(
+    EventCreate(
+        event_type="user_message",
+        content="以后技术文档默认用中文，并且区分事实和推断。",
+        source="conversation",
+        scope="global",
+    )
+)
+
+candidate = memories.propose_memory(event)[0]
+decision = memories.evaluate_candidate(candidate.id)
+memory = memories.commit_memory(candidate.id, decision.id)
+
+results = memories.search_memory(
+    SearchMemoryInput(query="中文", memory_types=["user_preference"], scopes=["global"])
+)
+```
+
+上下文组装示例：
+
+```python
+from memory_system import compose_context
+
+block = compose_context("写项目说明", results, token_budget=1000)
+print(block.content)
+```
+
+启动 API：
+
+```bash
+python -m uvicorn memory_system.api:create_app --factory --app-dir src --host 127.0.0.1 --port 8000
+```
+
+核心接口：
+
+```text
+GET  /health
+GET  /remote/status
+GET  /remote/health
+POST /remote/extract/{event_id}
+POST /remote/embed
+POST /remote/evaluate-candidates
+POST /remote/evaluate-retrieval
+POST /events
+GET  /events/{event_id}
+GET  /events
+POST /candidates/from-event/{event_id}
+POST /candidates/from-event/{event_id}/remote
+GET  /candidates
+PATCH /candidates/{candidate_id}
+POST /candidates/{candidate_id}/evaluate
+POST /candidates/{candidate_id}/approve
+POST /candidates/{candidate_id}/reject
+POST /memories/commit
+POST /memories/search
+POST /memories/search/remote-hybrid
+POST /memories/search/remote-guarded-hybrid
+POST /memories/embeddings/remote-backfill
+POST /memories/{memory_id}/embedding/remote
+GET  /retrieval/logs
+GET  /retrieval/logs/{log_id}
+POST /retrieval/logs/{log_id}/feedback
+GET  /memories/usage
+GET  /memories/{memory_id}/usage
+POST /maintenance/reviews/from-usage
+GET  /maintenance/reviews
+GET  /maintenance/reviews/{review_id}
+POST /maintenance/reviews/{review_id}/resolve
+GET  /memories/{memory_id}
+GET  /memories/{memory_id}/versions
+POST /memories/{memory_id}/stale
+POST /memories/{memory_id}/archive
+POST /memories/{memory_id}/supersede
+POST /graph/entities
+GET  /graph/entities
+GET  /graph/entities/{entity_id}
+POST /graph/relations
+GET  /graph/relations
+GET  /graph/conflicts
+POST /graph/conflict-reviews/from-conflicts
+GET  /graph/conflict-reviews
+GET  /graph/conflict-reviews/{review_id}
+POST /graph/conflict-reviews/{review_id}/resolve
+POST /consolidation/propose
+GET  /consolidation/candidates
+POST /consolidation/{candidate_id}/commit
+POST /consolidation/{candidate_id}/reject
+POST /context/compose
+POST /recall/task
+POST /recall/orchestrated
+POST /recall/graph
 ```
 
 ## 4. 设计原则
@@ -121,6 +536,10 @@ loaded = log.get_event(event.id)
 - [07-implementation-checklist.md](docs/07-implementation-checklist.md)：Python 实施清单、模块结构、接口和测试用例
 - [08-mainstream-frameworks.md](docs/08-mainstream-frameworks.md)：主流记忆框架对比和可借鉴设计
 - [09-verification-and-testing.md](docs/09-verification-and-testing.md)：验证指标、测试分层、黄金测试集和上线验收
+- [10-golden-case-examples.md](docs/10-golden-case-examples.md)：黄金测试集具体样例、synthetic 测试事实和期望行为说明
+- [11-remote-adapters.md](docs/11-remote-adapters.md)：远程 LLM / embedding 适配器契约、配置和验证方式
+- [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)：当前项目说明、实现范围、远程实测结果和常用命令
+- [RULE_JUDGMENT.md](RULE_JUDGMENT.md)：写入门禁、召回、上下文注入、生命周期和远程治理的规则判断说明
 
 ## 6. 初始推荐路线
 
@@ -143,7 +562,9 @@ Event Log
 4. 将确认后的记忆写入结构化存储。
 5. 用全文检索和标签检索支撑初期使用。
 6. 当记忆规模和语义检索需求变大后，再加入向量检索。
-7. 最后加入自动巩固、冲突修订、遗忘机制和多智能体共享记忆。
+7. 加入自动巩固、冲突修订、遗忘机制和多智能体共享记忆。
+
+当前代码已经先落地了第 7 步里的“自动巩固”最小闭环：规则发现可巩固组，生成候选，commit 后新记忆 active、旧记忆 superseded。
 
 ## 7. 与主流框架的关系
 

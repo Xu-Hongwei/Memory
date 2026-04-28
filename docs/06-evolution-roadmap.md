@@ -137,7 +137,10 @@ FastAPI
 - `POST /memories`
 - `GET /memories/search`
 - `POST /context/compose`
-- `POST /consolidation/run`
+- `POST /consolidation/propose`
+- `GET /consolidation/candidates`
+- `POST /consolidation/{candidate_id}/commit`
+- `POST /consolidation/{candidate_id}/reject`
 
 ### 本地 SDK 能力
 
@@ -234,6 +237,10 @@ APScheduler
 - 更新 reuse_count 和 last_used_at
 - 将低置信候选保留在 pending 状态
 
+当前实现已经先落地规则版最小闭环：按 `scope + memory_type + subject` 分组，生成巩固候选，commit 后写入 consolidated 记忆，并把来源记忆标记为 `superseded`。LLM summarizer、语义聚类和后台调度仍属于后续增强。
+
+检索使用日志也已经落地第一版：`search / context / task_recall / graph_recall` 会写入 `retrieval_logs`，并支持对单次检索写入 useful、not_useful、mixed 或 unknown 反馈。当前已经可以基于这些日志生成 `keep / review / mark_stale / archive` 维护建议，并转成可审查的 maintenance review item；后续的 reuse score、降权和遗忘策略应继续优先基于这些日志，而不是只看静态字段。
+
 ### 巩固触发
 
 - 每 N 次对话
@@ -255,6 +262,10 @@ APScheduler
 
 让系统长期运行后仍然保持干净。
 
+当前实现先加入了 Phase 6-lite：轻量知识图谱层。它还不是 temporal graph database，而是在 SQLite 中增加 `memory_entities` 和可挂载来源记忆的 `memory_relations`，用于验证实体关系对召回是否真的有帮助。
+
+随后补上了冲突审查层：图谱只负责发现“同一实体同一属性出现多个当前值”，真正改变长期记忆状态必须先生成 `conflict_review_item`，再显式执行 resolve 动作。
+
 ### 功能
 
 - 冲突检测
@@ -264,6 +275,42 @@ APScheduler
 - 删除和导出
 - 用户可查看记忆
 - 记忆使用日志
+- 轻量实体和关系召回
+
+### Phase 6-lite 已实现能力
+
+- 保存 repo、file、tool、command、error、solution 等实体。
+- 保存实体关系，并记录 `source_memory_ids`。
+- 从任务文本和当前 scope 匹配 seed entities。
+- 沿 confirmed/likely 关系召回相关 active 记忆。
+- 防止其他 repo、旧记忆和低置信关系串入上下文。
+- 检测同一实体同一关系类型指向多个不同目标的当前事实冲突。
+- 将图谱冲突转成待审查项，并通过 `accept_new / keep_existing / keep_both_scoped / ask_user / archive_all` 治理冲突记忆。
+- 记录检索、上下文注入和召回使用情况，为排序和遗忘提供反馈数据。
+- 将低使用或负反馈记忆转成 maintenance review，并通过显式 resolve 执行 stale/archive。
+
+## 8.1 Phase 6.5：远程适配器
+
+### 目标
+
+在不改变本地写入治理的前提下，接入远程 LLM 和远程 embedding 服务，验证真实模型能力是否能提高候选记忆提取和语义表示质量。
+
+### 当前已实现能力
+
+- `RemoteAdapterConfig` 从环境变量读取远程地址、token、超时和路径配置。
+- `RemoteLLMClient.extract_candidates(...)` 调用远程 `/memory/extract`，返回结构化候选记忆。
+- `RemoteEmbeddingClient.embed_texts(...)` 调用远程 `/embeddings`，返回向量。
+- FastAPI 暴露 `/remote/status`、`/remote/health`、`/remote/extract/{event_id}`、`/remote/embed`。
+- CLI 暴露 `memoryctl remote status/health/extract/embed`。
+- 远程候选默认 dry-run，不自动进入 `memory_candidates`。
+
+### 验收标准
+
+- 远程服务不可用时，本地核心记忆流程不受影响。
+- 远程候选必须能被 Pydantic schema 校验。
+- API key 不出现在 status 输出、日志或 CLI JSON 中。
+- 同一批 event 可以同时跑本地规则和远程提取，方便比较召回率与误写风险。
+- 写入长期记忆仍必须经过本地 `evaluate_candidate`。
 
 ### 遗忘机制
 
@@ -395,4 +442,3 @@ Experience System =
   + Audit
   + User Control
 ```
-
