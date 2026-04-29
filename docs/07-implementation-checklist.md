@@ -218,7 +218,7 @@ memory_feedback
 memory_edges
 ```
 
-当前 `memory_embeddings` 已经进入实现：本地使用 `(memory_id, model)` 缓存远程 embedding 向量，`search_memory` 支持 `retrieval_mode=semantic|hybrid`，远程 API / CLI 可以显式为单条记忆或一批缺失记忆建立向量缓存，并能用 v1/v2 fixture 和 category summary 对比 keyword / semantic / hybrid / guarded_hybrid 的召回表现。
+当前 `memory_embeddings` 已经进入实现：本地使用 `(memory_id, model)` 缓存远程 embedding 向量，`search_memory` 支持 `retrieval_mode=semantic|hybrid`，远程 API / CLI 可以显式为单条记忆或一批缺失记忆建立向量缓存，并能用 v1/v2/cn/public fixture 和 category summary 对比 keyword / semantic / hybrid / guarded_hybrid，以及可选的 `llm_guarded_hybrid` / `selective_llm_guarded_hybrid` 召回表现。
 
 ## 6. SQLite FTS5
 
@@ -501,6 +501,7 @@ API：
 ```text
 GET  /remote/status
 GET  /remote/health
+POST /remote/route
 POST /remote/extract/{event_id}
 POST /remote/evaluate-candidates
 POST /candidates/from-event/{event_id}/remote
@@ -512,6 +513,7 @@ CLI：
 ```text
 memoryctl remote status
 memoryctl remote health
+memoryctl remote route --event-id <event_id>
 memoryctl remote extract <event_id>
 memoryctl remote evaluate --event-id <event_id>
 memoryctl remote import <event_id>
@@ -521,9 +523,10 @@ memoryctl remote embed "memory text"
 验收标准：
 
 - `remote status` 不泄露 API key。
+- `remote route` 返回长期候选、短期会话记忆、忽略项、拒绝项和待确认项；长期候选只进入 pending，不自动 commit。
 - `remote extract` 返回 `RemoteCandidateExtractionResult`。
 - `remote evaluate` 返回 `RemoteCandidateEvaluationResult`，不写候选表。
-- `remote import` 返回 `RemoteCandidateImportResult`，只创建 pending candidate。
+- `remote import` 返回 `RemoteCandidateImportResult`，作为 legacy long-term-only 入口只创建 pending candidate。
 - `remote embed` 返回向量数量和维度。
 - `remote extract` 不会写入 `memory_candidates`。
 - 远程候选导入后仍然必须走 `evaluate_candidate` 和 `commit_memory`。

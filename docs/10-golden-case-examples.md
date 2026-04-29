@@ -37,6 +37,8 @@ absent_aliases  不应该出现在结果里的 alias
 
 ```text
 tests/fixtures/golden_cases/write_policy.jsonl
+tests/fixtures/golden_cases/write_policy_cn_realistic.jsonl
+tests/fixtures/golden_cases/write_policy_en_realistic.jsonl
 ```
 
 ### 1.1 应该写入长期偏好
@@ -107,6 +109,43 @@ tests/fixtures/golden_cases/write_policy.jsonl
 
 ```text
 不生成长期记忆候选
+```
+
+### 1.3 中文低证据偏好应该确认
+
+样本类似：
+
+```json
+{
+  "category": "cn_review_preference_uncertain",
+  "event": {
+    "event_type": "user_message",
+    "content": "也许我更喜欢回答先给结论，再展开原因。"
+  },
+  "expected": {
+    "candidates": [
+      {
+        "memory_type": "user_preference",
+        "evidence_type": "direct_user_statement",
+        "decision": "ask_user"
+      }
+    ]
+  }
+}
+```
+
+它在测试：
+
+```text
+“也许我更喜欢”是偏好信号，但证据不够强，不能直接写入。
+```
+
+期望结果：
+
+```text
+生成 user_preference 候选
+决策为 ask_user
+等待用户确认后再写入长期记忆
 ```
 
 ## 2. 召回测试样例

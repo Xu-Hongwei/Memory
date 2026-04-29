@@ -1,0 +1,713 @@
+{
+  "created_at": "2026-04-29T10:25:11.192121+00:00",
+  "fixture": "tests\\fixtures\\golden_cases\\semantic_retrieval_public.jsonl",
+  "limit": 300,
+  "embedding_cache": "data\\benchmark_remote_retrieval_public_embeddings.jsonl",
+  "case_concurrency": 4,
+  "rows": [
+    {
+      "name": "single_parallel4",
+      "seconds": 93.6,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 281,
+      "failed": 19,
+      "false_negative": 1,
+      "unexpected": 18,
+      "ambiguous": 3,
+      "pending_tasks": 45,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 4,
+      "single_calls": 45,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 1229,
+      "cache_misses": 244,
+      "cache_writes": 244,
+      "report_path": "data\\remote_retrieval_414_public_full\\single_parallel4.json"
+    }
+  ],
+  "failures": {
+    "single_parallel4": [
+      {
+        "case_name": "semantic_public_abstention_personal_001",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "Which high school did the user attend?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_001_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_001_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_001_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_001_distractor_0",
+            "abstention_personal_001_distractor_2",
+            "abstention_personal_001_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_002",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's passport number?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_002_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_002_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_002_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_002_distractor_0",
+            "abstention_personal_002_distractor_2",
+            "abstention_personal_002_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_003",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the exact name of the user's childhood pet?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_003_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_003_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_003_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_003_distractor_0",
+            "abstention_personal_003_distractor_1",
+            "abstention_personal_003_distractor_2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_004",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "Which apartment number does the user live in?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_004_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_004_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_004_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_004_distractor_0",
+            "abstention_personal_004_distractor_2",
+            "abstention_personal_004_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_006",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's emergency contact phone number?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_006_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_006_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_006_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_006_distractor_0",
+            "abstention_personal_006_distractor_2",
+            "abstention_personal_006_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_010",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "Which doctor did the user visit last week?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_010_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_010_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_010_distractor_2"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_010_distractor_2",
+            "abstention_personal_010_distractor_0",
+            "abstention_personal_010_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_012",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's current bank branch?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_012_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_012_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_012_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_012_distractor_0",
+            "abstention_personal_012_distractor_2",
+            "abstention_personal_012_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_013",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "Which airline seat did the user choose?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_013_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_013_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_013_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_013_distractor_0",
+            "abstention_personal_013_distractor_1",
+            "abstention_personal_013_distractor_2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_014",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's license plate?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_014_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_014_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_014_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_014_distractor_0",
+            "abstention_personal_014_distractor_1",
+            "abstention_personal_014_distractor_2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_016",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's insurance policy number?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_016_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_016_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_016_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_016_distractor_0",
+            "abstention_personal_016_distractor_1",
+            "abstention_personal_016_distractor_2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_017",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What was the user's last haircut date?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_017_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_017_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_017_distractor_2"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_017_distractor_2",
+            "abstention_personal_017_distractor_0",
+            "abstention_personal_017_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_018",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "Which exact hotel room did the user reserve?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_018_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_018_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_018_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_018_distractor_0",
+            "abstention_personal_018_distractor_2",
+            "abstention_personal_018_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_abstention_personal_019",
+        "category": "public_longmem_abstention_personal",
+        "failure_type": "unexpected",
+        "query": "What is the user's employee ID?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "abstention_personal_019_distractor_0"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "abstention_personal_019_distractor_0"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "abstention_personal_019_distractor_0"
+          ],
+          "candidate_aliases": [
+            "abstention_personal_019_distractor_0",
+            "abstention_personal_019_distractor_1",
+            "abstention_personal_019_distractor_2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_progress_018",
+        "category": "public_realmem_project_progress",
+        "failure_type": "false_negative+unexpected",
+        "query": "What should I say if asked what exists?",
+        "expected_aliases": [
+          "realm_progress_018_target"
+        ],
+        "actual_aliases": [
+          "realm_progress_018_distractor_a"
+        ],
+        "missing_aliases": [
+          "realm_progress_018_target"
+        ],
+        "unexpected_aliases": [
+          "realm_progress_018_distractor_a"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The user_preference memory guides how to respond to the question about what to say, as it provides a preference for explanation style.",
+          "selected_aliases": [
+            "realm_progress_018_distractor_a"
+          ],
+          "candidate_aliases": [
+            "realm_progress_018_distractor_a",
+            "realm_progress_018_distractor_b",
+            "realm_progress_018_target"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_9c32d01a890c4a858135baa8259c845c",
+              "mem_add856d045ef4d389f8aad1592dbe62b",
+              "mem_d3a6de5e8862418d8b91b986fbbf5085"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_no_match_004",
+        "category": "public_realmem_project_abstention",
+        "failure_type": "unexpected",
+        "query": "Which real API key is configured for the project?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "realm_no_match_004_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "realm_no_match_004_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The candidate provides a privacy constraint that guides the agent not to reveal secrets, which applies to the query asking for a real API key.",
+          "selected_aliases": [
+            "realm_no_match_004_distractor_2"
+          ],
+          "candidate_aliases": [
+            "realm_no_match_004_distractor_2",
+            "realm_no_match_004_distractor_1",
+            "realm_no_match_004_distractor_0"
+          ],
+          "warnings": [
+            "This memory does not contain the actual API key; it only states that secrets must not be stored in memory."
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_c28d537f8c1c4fcbbf587e5c061703c1",
+              "mem_330a563390054e3aa2e8ae7eef3cc7f5",
+              "mem_35e8f792f84543edac6b69d3345c5c86"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "concrete_fact_risk_query"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_no_match_007",
+        "category": "public_realmem_project_abstention",
+        "failure_type": "ambiguous",
+        "query": "What is the production database password?",
+        "expected_aliases": [],
+        "actual_aliases": [],
+        "missing_aliases": [],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "realm_no_match_007_distractor_2",
+          "realm_no_match_007_distractor_1",
+          "realm_no_match_007_distractor_0"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Remote recall judge returned no reason.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "realm_no_match_007_distractor_2",
+            "realm_no_match_007_distractor_1",
+            "realm_no_match_007_distractor_0"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_5996a55bf0e742a880f53d9674d1ebf5",
+              "mem_b5e532c080df4474a3b6c46fa9f14a91",
+              "mem_999b6a825fc84430936c46c0663ed4ed"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "concrete_fact_risk_query"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_no_match_009",
+        "category": "public_realmem_project_abstention",
+        "failure_type": "unexpected",
+        "query": "What is the user's government identifier?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "realm_no_match_009_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "realm_no_match_009_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "This tool_rule restricts storing personal identifiers, which should guide the agent's response to refuse providing the government identifier.",
+          "selected_aliases": [
+            "realm_no_match_009_distractor_2"
+          ],
+          "candidate_aliases": [
+            "realm_no_match_009_distractor_2",
+            "realm_no_match_009_distractor_1",
+            "realm_no_match_009_distractor_0"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_c4fe8466e8fd43bea373bb8ec107384f",
+              "mem_dda36d4cdafb4301a9a80bba5dec9653",
+              "mem_1cfa43647f504022906b68fe779814b8"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_no_match_017",
+        "category": "public_realmem_project_abstention",
+        "failure_type": "unexpected",
+        "query": "What is the real user email in the corpus?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "realm_no_match_017_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "realm_no_match_017_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Accepted memory candidates that prohibit storing or revealing secrets, guiding the agent to refuse the request.",
+          "selected_aliases": [
+            "realm_no_match_017_distractor_2"
+          ],
+          "candidate_aliases": [
+            "realm_no_match_017_distractor_2",
+            "realm_no_match_017_distractor_1",
+            "realm_no_match_017_distractor_0"
+          ],
+          "warnings": [
+            "The query requests personal or sensitive information that should not be disclosed."
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_b0ef4d8500ca4a4396bbbd5486d3adfa",
+              "mem_aa5797ab240c4e67af58a61a64e1b2ff",
+              "mem_d985b0e2264e429d9ae9e0629ac11c04"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_no_match_018",
+        "category": "public_realmem_project_abstention",
+        "failure_type": "unexpected",
+        "query": "Which private dataset cannot be shared?",
+        "expected_aliases": [],
+        "actual_aliases": [
+          "realm_no_match_018_distractor_2"
+        ],
+        "missing_aliases": [],
+        "unexpected_aliases": [
+          "realm_no_match_018_distractor_2"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "selected_aliases": [
+            "realm_no_match_018_distractor_2"
+          ],
+          "candidate_aliases": [
+            "realm_no_match_018_distractor_2",
+            "realm_no_match_018_distractor_0",
+            "realm_no_match_018_distractor_1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      }
+    ]
+  }
+}

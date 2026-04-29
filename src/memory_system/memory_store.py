@@ -70,6 +70,13 @@ STRONG_PREFERENCE_CUES = (
     "remember",
     "default",
     "always",
+    "going forward",
+    "from now on",
+    "long-term",
+    "please always",
+    "please follow this rule",
+    "stick with",
+    "use by default",
 )
 WEAK_PREFERENCE_CUES = ("喜欢", "like")
 PREFERENCE_OBJECT_CUES = (
@@ -77,6 +84,34 @@ PREFERENCE_OBJECT_CUES = (
     "回复",
     "文档",
     "代码",
+    "测试",
+    "模型",
+    "记忆",
+    "建议",
+    "计划",
+    "日程",
+    "选择",
+    "兴趣",
+    "提醒",
+    "摘要",
+    "清单",
+    "学习",
+    "旅行",
+    "购物",
+    "会议",
+    "健康",
+    "推荐",
+    "地区",
+    "城市",
+    "结果",
+    "项目",
+    "错误",
+    "报错",
+    "方案",
+    "提交",
+    "结构",
+    "召回",
+    "上下文",
     "格式",
     "风格",
     "语言",
@@ -91,12 +126,160 @@ PREFERENCE_OBJECT_CUES = (
     "docs",
     "documentation",
     "code",
+    "test",
+    "tests",
+    "model",
+    "memory",
+    "recall",
+    "context",
+    "summary",
+    "summaries",
+    "schedule",
+    "plan",
+    "recommendation",
+    "recommendations",
+    "travel",
+    "shopping",
+    "meeting",
+    "reminder",
+    "study",
+    "material",
+    "result",
+    "project",
+    "error",
+    "bug",
+    "commit",
+    "structure",
+    "explanation",
+    "choice",
+    "health",
+    "city",
+    "location",
+    "workflow",
     "format",
     "style",
     "language",
 )
-VERIFIED_CUES = ("已确认", "确认", "已验证", "验证通过", "passed", "通过")
+LONG_TERM_DIRECTIVE_CUES = (
+    "going forward",
+    "by default",
+    "remember this long-term",
+    "my stable preference",
+    "please follow this rule",
+)
+UNCERTAIN_PREFERENCE_CUES = (
+    "可能",
+    "也许",
+    "大概",
+    "似乎",
+    "好像",
+    "还没想好",
+    "还不确定",
+    "不确定以后",
+    "不确定要不要",
+    "不确定是不是",
+    "先试试",
+    "maybe",
+    "probably",
+    "not sure",
+    "i might",
+    "i may",
+    "i'm not sure",
+    "not sure whether",
+    "not sure if",
+    "i have not decided",
+    "i haven't decided",
+)
+UNDERSPECIFIED_PREFERENCE_PHRASES = (
+    "以后都这样",
+    "以后也这样",
+    "以后就这样",
+    "以后按这个来",
+    "之后都这样",
+    "下次也这样",
+    "下次按这个",
+    "以后照这个",
+    "keep doing it this way",
+    "keep doing this",
+    "use this going forward",
+    "do it like this next time",
+    "same next time",
+    "do that from now on",
+    "stick with this",
+)
+DO_NOT_REMEMBER_CUES = (
+    "不要记录",
+    "不用记录",
+    "别记录",
+    "不要记住",
+    "不用记住",
+    "别记住",
+    "别记",
+    "不用写进长期记忆",
+    "别写进长期记忆",
+    "不要当成",
+    "别当成",
+    "不算我的",
+    "不是我的偏好",
+    "不代表以后",
+    "不代表我以后",
+    "不代表长期",
+    "不要当成偏好",
+    "别当成偏好",
+    "不用记录成偏好",
+    "不提候选",
+    "先别记",
+    "do not remember",
+    "don't remember",
+    "do not store",
+    "don't store",
+    "do not save",
+    "don't save",
+    "do not treat this as",
+    "don't treat this as",
+    "do not treat it as",
+    "don't treat it as",
+    "do not treat that as",
+    "don't treat that as",
+    "not a preference",
+    "not my preference",
+    "not long-term",
+    "not a long-term preference",
+    "not my long-term",
+    "not a stable",
+    "do not write this into memory",
+    "don't write this into memory",
+    "do not make this a memory",
+    "keep it out of long-term memory",
+    "stay out of long-term memory",
+    "without turning it into",
+    "with no need to keep it later",
+    "passing reaction",
+    "current example",
+    "current mood",
+    "casual aside",
+    "today's options",
+    "for this one draft",
+)
+VERIFIED_CUES = (
+    "已确认",
+    "确认",
+    "已验证",
+    "验证通过",
+    "passed",
+    "通过",
+    "confirmed",
+    "verified",
+    "validated",
+    "validation passed",
+)
 TROUBLESHOOTING_CUES = ("问题", "经验", "解决方式")
+TROUBLESHOOTING_CUE_SETS = (
+    TROUBLESHOOTING_CUES,
+    ("problem", "lesson", "solution"),
+    ("issue", "lesson", "fix"),
+    ("problem", "what worked", "resolution"),
+)
 TEMPORARY_CUES = (
     "这次",
     "当前任务",
@@ -106,6 +289,16 @@ TEMPORARY_CUES = (
     "暂时",
     "temporary",
     "temporarily",
+    "this time",
+    "for this run",
+    "for this task",
+    "for now",
+    "today only",
+    "just for now",
+    "just for this",
+    "current task",
+    "this round",
+    "one-off",
 )
 TEMPORARY_PHRASES = (
     "临时用",
@@ -114,9 +307,29 @@ TEMPORARY_PHRASES = (
     "临时记住",
     "临时输出",
     "临时文件",
+    "先叫",
+    "先说明一下",
+    "for the current screenshot",
+    "only for this example",
+    "just to inspect",
+    "just to compare",
 )
 TEMPORARY_TOPIC_EXCEPTIONS = ("临时状态", "临时信息", "temporary state", "session state")
-SENSITIVE_MARKERS = ("[REDACTED]",)
+SENSITIVE_MARKERS = ("[REDACTED]", "[REDACTED_EMAIL]", "[REDACTED_PHONE]", "[REDACTED_ID]")
+SENSITIVE_VALUE_PATTERNS = (
+    re.compile(
+        r"(?P<key>api[_-]?key|token|secret|password|passwd|cookie)"
+        r"(?P<sep>\s*[:=]\s*)"
+        r"(?P<quote>['\"]?)"
+        r"(?P<value>[^\s,'\"]{8,})"
+        r"(?P=quote)",
+        re.I,
+    ),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._\-]{16,}"),
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)"),
+    re.compile(r"(?<!\d)\d{17}[\dXx](?!\d)"),
+)
 CONSOLIDATION_CONFIDENCES: tuple[Confidence, ...] = ("confirmed", "likely")
 
 
@@ -139,6 +352,67 @@ def _new_id(prefix: str) -> str:
 def _contains_any(text: str, cues: tuple[str, ...]) -> bool:
     lowered = text.lower()
     return any(cue.lower() in lowered for cue in cues)
+
+
+def _contains_sensitive_material(text: str) -> bool:
+    if _contains_any(text, SENSITIVE_MARKERS):
+        return True
+    return any(pattern.search(text) for pattern in SENSITIVE_VALUE_PATTERNS)
+
+
+def _canonical_text(text: str) -> str:
+    lowered = text.lower()
+    lowered = re.sub(r"\s+", " ", lowered)
+    return re.sub(r"[^\w\u4e00-\u9fff:/.\-]+", " ", lowered).strip()
+
+
+def _canonical_subject_key(
+    *,
+    memory_type: str,
+    subject: str,
+    content: str,
+) -> str:
+    text = _canonical_text(f"{subject} {content}")
+    if _contains_all(text, ("web", "console", "port")) or _contains_all(
+        text,
+        ("web", "\u63a7\u5236\u53f0", "\u7aef\u53e3"),
+    ):
+        return f"{memory_type}:web_console.default_port"
+    if _contains_any(text, ("\u9879\u76ee\u8bf4\u660e", "project overview")) and _contains_any(
+        text,
+        ("readme", "project_overview", "\u6765\u6e90", "\u552f\u4e00\u6765\u6e90", "\u5f53\u524d\u72b6\u6001\u6458\u8981", "source"),
+    ):
+        return f"{memory_type}:project_docs.source"
+    if _contains_any(text, ("startup command", "\u542f\u52a8\u547d\u4ee4")):
+        return f"{memory_type}:startup.command"
+    if _contains_any(text, ("dev command", "dev script", "dev \u811a\u672c")):
+        return f"{memory_type}:dev.command"
+    if _contains_all(text, ("remote", "embedding", "model")) or _contains_all(
+        text,
+        ("\u8fdc\u7a0b", "embedding", "\u6a21\u578b"),
+    ):
+        return f"{memory_type}:remote_embedding.model"
+
+    normalized = _canonical_text(subject)
+    for cue in (
+        " duplicate",
+        " conflict",
+        " fact",
+        " confirmed",
+        " duplicate fact",
+        " conflict fact",
+        "\u91cd\u590d",
+        "\u51b2\u7a81",
+        "\u4e8b\u5b9e",
+        "\u5df2\u786e\u8ba4",
+    ):
+        normalized = normalized.replace(cue, " ")
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return f"{memory_type}:{normalized or _canonical_text(content)[:80]}"
+
+
+def _contains_all(text: str, cues: tuple[str, ...]) -> bool:
+    return all(cue.lower() in text for cue in cues)
 
 
 def _normalize_vector_payload(vector: list[float]) -> list[float]:
@@ -188,12 +462,28 @@ def _is_temporary(text: str) -> bool:
 
 
 def _is_preference_candidate(text: str) -> bool:
+    if _contains_any(text, DO_NOT_REMEMBER_CUES) and not _contains_any(
+        text,
+        LONG_TERM_DIRECTIVE_CUES,
+    ):
+        return False
+    if _contains_any(text, UNDERSPECIFIED_PREFERENCE_PHRASES):
+        return True
     if _is_temporary(text):
         return False
+    if _is_low_evidence_preference(text) and _contains_any(text, PREFERENCE_OBJECT_CUES):
+        return True
     if _contains_any(text, STRONG_PREFERENCE_CUES):
         return True
     return _contains_any(text, WEAK_PREFERENCE_CUES) and _contains_any(
         text, PREFERENCE_OBJECT_CUES
+    )
+
+
+def _is_low_evidence_preference(text: str) -> bool:
+    return _contains_any(text, UNCERTAIN_PREFERENCE_CUES) or _contains_any(
+        text,
+        UNDERSPECIFIED_PREFERENCE_PHRASES,
     )
 
 
@@ -229,6 +519,54 @@ def _candidate_claim(event: EventRead) -> str:
     if isinstance(claim, str) and claim.strip():
         return claim.strip()
     return event.content.strip()
+
+
+def _metadata_memory_candidates(event: EventRead) -> list[MemoryCandidateCreate]:
+    raw_candidates = event.metadata.get("memory_candidates")
+    if not isinstance(raw_candidates, list):
+        return []
+
+    candidates: list[MemoryCandidateCreate] = []
+    for raw in raw_candidates:
+        if not isinstance(raw, dict):
+            continue
+        memory_type = raw.get("memory_type")
+        if not isinstance(memory_type, str) or not memory_type.strip():
+            continue
+        content = str(raw.get("content") or raw.get("claim") or event.content).strip()
+        subject = str(raw.get("subject") or _default_subject(event, memory_type)).strip()
+        reason = str(raw.get("reason") or "Event metadata supplied an atomic memory candidate.").strip()
+        claim = raw.get("claim")
+        scores = raw.get("scores", {})
+        reuse_cases = raw.get("reuse_cases", [])
+        source_event_ids = raw.get("source_event_ids")
+        if not isinstance(source_event_ids, list) or not source_event_ids:
+            source_event_ids = [event.id]
+        source_event_ids = [str(item) for item in source_event_ids if str(item).strip()]
+        if not source_event_ids:
+            source_event_ids = [event.id]
+        if not isinstance(reuse_cases, list):
+            reuse_cases = []
+        if not isinstance(scores, dict):
+            scores = {}
+        candidates.append(
+            MemoryCandidateCreate(
+                content=content,
+                memory_type=memory_type,
+                scope=str(raw.get("scope") or event.scope),
+                subject=subject,
+                source_event_ids=source_event_ids,
+                reason=reason,
+                claim=str(claim).strip() if isinstance(claim, str) and claim.strip() else content,
+                evidence_type=raw.get("evidence_type", event.metadata.get("evidence_type", "unknown")),
+                time_validity=raw.get("time_validity", event.metadata.get("time_validity", "unknown")),
+                reuse_cases=[str(item) for item in reuse_cases],
+                scores=CandidateScores(**scores),
+                confidence=raw.get("confidence", event.metadata.get("confidence", "likely")),
+                risk=raw.get("risk", event.metadata.get("risk", "low")),
+            )
+        )
+    return candidates
 
 
 def _make_fts_query(query: str) -> str:
@@ -593,11 +931,15 @@ class MemoryStore:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def preview_memory_candidates(self, event: EventRead) -> list[MemoryCandidateCreate]:
-        if event.sanitized or _contains_any(event.content, SENSITIVE_MARKERS):
+        if event.sanitized or _contains_sensitive_material(event.content):
             return []
 
         candidates: list[MemoryCandidateCreate] = []
         content = event.content.strip()
+
+        metadata_candidates = _metadata_memory_candidates(event)
+        if metadata_candidates:
+            return metadata_candidates
 
         explicit_type = event.metadata.get("memory_type")
         if explicit_type:
@@ -618,9 +960,10 @@ class MemoryStore:
                     risk=event.metadata.get("risk", "low"),
                 )
             )
-        elif all(cue in content for cue in TROUBLESHOOTING_CUES) and _contains_any(
-            content, VERIFIED_CUES
-        ):
+        elif any(
+            all(cue in content.lower() for cue in cue_set)
+            for cue_set in TROUBLESHOOTING_CUE_SETS
+        ) and _contains_any(content, VERIFIED_CUES):
             candidates.append(
                 MemoryCandidateCreate(
                     content=content,
@@ -648,6 +991,7 @@ class MemoryStore:
             event.event_type == "user_message"
             and _is_preference_candidate(content)
         ):
+            low_evidence = _is_low_evidence_preference(content)
             candidates.append(
                 MemoryCandidateCreate(
                     content=content,
@@ -655,19 +999,21 @@ class MemoryStore:
                     scope=event.scope,
                     subject=_default_subject(event, "user_preference"),
                     source_event_ids=[event.id],
-                    reason="用户消息包含长期偏好线索。",
+                    reason="用户消息包含低证据偏好线索，需要确认。"
+                    if low_evidence
+                    else "用户消息包含长期偏好线索。",
                     claim=_candidate_claim(event),
                     evidence_type="direct_user_statement",
                     time_validity="persistent",
                     reuse_cases=["style_guidance", "future_responses"],
                     scores=_candidate_scores(
-                        long_term=0.9,
-                        evidence=1.0,
-                        reuse=0.8,
-                        risk=0.1,
-                        specificity=0.7,
+                        long_term=0.7 if low_evidence else 0.9,
+                        evidence=0.4 if low_evidence else 1.0,
+                        reuse=0.6 if low_evidence else 0.8,
+                        risk=0.2 if low_evidence else 0.1,
+                        specificity=0.3 if low_evidence else 0.7,
                     ),
-                    confidence="confirmed",
+                    confidence="inferred" if low_evidence else "confirmed",
                     risk="low",
                 )
             )
@@ -917,9 +1263,16 @@ class MemoryStore:
         required_action: str | None = None
         matched_memory_ids: list[str] = []
 
-        if candidate.risk == "high" or _contains_any(candidate.content, SENSITIVE_MARKERS):
+        has_sensitive_material = _contains_sensitive_material(candidate.content) or (
+            candidate.claim is not None and _contains_sensitive_material(candidate.claim)
+        )
+
+        if candidate.risk == "high" or has_sensitive_material:
             decision = "reject"
             reason = "候选记忆风险较高或包含脱敏标记，不允许写入长期记忆。"
+        elif candidate.time_validity == "session":
+            decision = "reject"
+            reason = "Candidate is session scoped or temporary, so it should not enter long-term memory."
         elif matched_duplicates:
             decision = "merge"
             reason = "候选记忆与已有长期记忆重复，复用已有记忆。"
@@ -933,6 +1286,12 @@ class MemoryStore:
             decision = "ask_user"
             reason = "候选记忆缺少明确证据类型或证据分不足。"
             required_action = "请确认这条候选是否有可靠来源。"
+        elif candidate.time_validity == "unknown":
+            decision = "ask_user"
+            reason = "Candidate validity window is unknown, so persistence must be confirmed before writing."
+            required_action = (
+                "Confirm whether this memory is persistent, until changed, or only valid for this session."
+            )
         elif candidate.scores.long_term < 0.5 or candidate.scores.reuse < 0.4:
             decision = "reject"
             reason = "候选记忆长期价值或复用价值不足。"
@@ -2656,12 +3015,29 @@ class MemoryStore:
                 WHERE status = 'active'
                   AND memory_type = ?
                   AND scope = ?
-                  AND subject = ?
-                  AND content = ?
                 """,
-                (candidate.memory_type, candidate.scope, candidate.subject, candidate.content),
+                (candidate.memory_type, candidate.scope),
             ).fetchall()
-        return [self._row_to_memory(row) for row in rows]
+        candidate_content = _canonical_text(candidate.content)
+        candidate_key = _canonical_subject_key(
+            memory_type=candidate.memory_type,
+            subject=candidate.subject,
+            content=candidate.content,
+        )
+        matches: list[MemoryItemRead] = []
+        for row in rows:
+            memory = self._row_to_memory(row)
+            if _canonical_text(memory.content) == candidate_content:
+                matches.append(memory)
+                continue
+            memory_key = _canonical_subject_key(
+                memory_type=memory.memory_type,
+                subject=memory.subject,
+                content=memory.content,
+            )
+            if memory_key == candidate_key and _canonical_text(memory.content) == candidate_content:
+                matches.append(memory)
+        return matches
 
     def _find_conflicting_memories(self, candidate: MemoryCandidateRead) -> list[MemoryItemRead]:
         with self._connect() as conn:
@@ -2671,12 +3047,29 @@ class MemoryStore:
                 WHERE status = 'active'
                   AND memory_type = ?
                   AND scope = ?
-                  AND subject = ?
-                  AND content != ?
                 """,
-                (candidate.memory_type, candidate.scope, candidate.subject, candidate.content),
+                (candidate.memory_type, candidate.scope),
             ).fetchall()
-        return [self._row_to_memory(row) for row in rows]
+        candidate_content = _canonical_text(candidate.content)
+        candidate_key = _canonical_subject_key(
+            memory_type=candidate.memory_type,
+            subject=candidate.subject,
+            content=candidate.content,
+        )
+        matches: list[MemoryItemRead] = []
+        for row in rows:
+            memory = self._row_to_memory(row)
+            memory_content = _canonical_text(memory.content)
+            if memory_content == candidate_content:
+                continue
+            memory_key = _canonical_subject_key(
+                memory_type=memory.memory_type,
+                subject=memory.subject,
+                content=memory.content,
+            )
+            if memory.subject == candidate.subject or memory_key == candidate_key:
+                matches.append(memory)
+        return matches
 
     def _fts_memory_ids(self, query: str) -> set[str]:
         fts_query = _make_fts_query(query)

@@ -1,0 +1,252 @@
+{
+  "created_at": "2026-04-29T10:19:11.921894+00:00",
+  "fixture": "tests\\fixtures\\golden_cases\\semantic_retrieval_public.jsonl",
+  "limit": 60,
+  "embedding_cache": "data\\benchmark_remote_retrieval_embeddings.jsonl",
+  "case_concurrency": 4,
+  "rows": [
+    {
+      "name": "baseline",
+      "seconds": 0.65,
+      "target_mode": "guarded_hybrid",
+      "passed": 54,
+      "failed": 6,
+      "false_negative": 6,
+      "unexpected": 0,
+      "ambiguous": 12,
+      "pending_tasks": 0,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 1,
+      "single_calls": 0,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 309,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_benchmarks_guidance\\baseline.json"
+    },
+    {
+      "name": "single_seq",
+      "seconds": 36.97,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 60,
+      "failed": 0,
+      "false_negative": 0,
+      "unexpected": 0,
+      "ambiguous": 0,
+      "pending_tasks": 6,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 1,
+      "single_calls": 6,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 309,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_benchmarks_guidance\\single_seq.json"
+    },
+    {
+      "name": "single_parallel4",
+      "seconds": 13.32,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 60,
+      "failed": 0,
+      "false_negative": 0,
+      "unexpected": 0,
+      "ambiguous": 0,
+      "pending_tasks": 6,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 4,
+      "single_calls": 6,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 309,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_benchmarks_guidance\\single_parallel4.json"
+    },
+    {
+      "name": "batch2_conc2",
+      "seconds": 22.96,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 60,
+      "failed": 0,
+      "false_negative": 0,
+      "unexpected": 0,
+      "ambiguous": 0,
+      "pending_tasks": 6,
+      "request_mode": "batch",
+      "judge_group_size": 2,
+      "judge_concurrency": 2,
+      "single_calls": 0,
+      "batch_count": 3,
+      "batch_calls": 3,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 309,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_benchmarks_guidance\\batch2_conc2.json"
+    },
+    {
+      "name": "batch4_conc2",
+      "seconds": 19.69,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 60,
+      "failed": 0,
+      "false_negative": 0,
+      "unexpected": 0,
+      "ambiguous": 0,
+      "pending_tasks": 6,
+      "request_mode": "batch",
+      "judge_group_size": 4,
+      "judge_concurrency": 2,
+      "single_calls": 0,
+      "batch_count": 2,
+      "batch_calls": 2,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 309,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_benchmarks_guidance\\batch4_conc2.json"
+    }
+  ],
+  "failures": {
+    "baseline": [
+      {
+        "case_name": "semantic_public_single_assistant_009",
+        "category": "public_longmem_single_session_assistant",
+        "failure_type": "false_negative+ambiguous",
+        "query": "Which runtime check was proposed for old UI behavior?",
+        "expected_aliases": [
+          "single_assistant_009_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "single_assistant_009_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "single_assistant_009_distractor_b",
+          "single_assistant_009_target"
+        ],
+        "item_warnings": [],
+        "judge": null
+      },
+      {
+        "case_name": "semantic_public_single_assistant_010",
+        "category": "public_longmem_single_session_assistant",
+        "failure_type": "false_negative+ambiguous",
+        "query": "What port/process step should be remembered?",
+        "expected_aliases": [
+          "single_assistant_010_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "single_assistant_010_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "single_assistant_010_target",
+          "single_assistant_010_distractor_b"
+        ],
+        "item_warnings": [],
+        "judge": null
+      },
+      {
+        "case_name": "semantic_public_single_assistant_015",
+        "category": "public_longmem_single_session_assistant",
+        "failure_type": "false_negative+ambiguous",
+        "query": "What should be done when live behavior differs from the patch?",
+        "expected_aliases": [
+          "single_assistant_015_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "single_assistant_015_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "single_assistant_015_distractor_b",
+          "single_assistant_015_target"
+        ],
+        "item_warnings": [],
+        "judge": null
+      },
+      {
+        "case_name": "semantic_public_preference_003",
+        "category": "public_longmem_single_session_preference",
+        "failure_type": "false_negative+ambiguous",
+        "query": "What should come before abstract guidance?",
+        "expected_aliases": [
+          "preference_003_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "preference_003_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "preference_003_target",
+          "preference_003_distractor_b"
+        ],
+        "item_warnings": [],
+        "judge": null
+      },
+      {
+        "case_name": "semantic_public_preference_012",
+        "category": "public_longmem_single_session_preference",
+        "failure_type": "false_negative+ambiguous",
+        "query": "What should I do before generalizing the rule?",
+        "expected_aliases": [
+          "preference_012_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "preference_012_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "preference_012_target",
+          "preference_012_distractor_b"
+        ],
+        "item_warnings": [],
+        "judge": null
+      },
+      {
+        "case_name": "semantic_public_preference_013",
+        "category": "public_longmem_single_session_preference",
+        "failure_type": "false_negative+ambiguous",
+        "query": "How should I frame an unfamiliar API?",
+        "expected_aliases": [
+          "preference_013_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "preference_013_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "preference_013_distractor_b",
+          "preference_013_target"
+        ],
+        "item_warnings": [],
+        "judge": null
+      }
+    ],
+    "single_seq": [],
+    "single_parallel4": [],
+    "batch2_conc2": [],
+    "batch4_conc2": []
+  }
+}

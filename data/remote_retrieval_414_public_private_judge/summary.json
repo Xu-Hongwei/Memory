@@ -1,0 +1,116 @@
+{
+  "created_at": "2026-04-29T10:38:27.912584+00:00",
+  "fixture": "tests\\fixtures\\golden_cases\\semantic_retrieval_public.jsonl",
+  "limit": 300,
+  "embedding_cache": "data\\benchmark_remote_retrieval_public_embeddings.jsonl",
+  "case_concurrency": 4,
+  "rows": [
+    {
+      "name": "single_parallel4",
+      "seconds": 123.29,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 298,
+      "failed": 2,
+      "false_negative": 2,
+      "unexpected": 1,
+      "ambiguous": 0,
+      "pending_tasks": 75,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 4,
+      "single_calls": 75,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 1473,
+      "cache_misses": 0,
+      "cache_writes": 0,
+      "report_path": "data\\remote_retrieval_414_public_private_judge\\single_parallel4.json"
+    }
+  ],
+  "failures": {
+    "single_parallel4": [
+      {
+        "case_name": "semantic_public_preference_012",
+        "category": "public_longmem_single_session_preference",
+        "failure_type": "false_negative",
+        "query": "What should I do before generalizing the rule?",
+        "expected_aliases": [
+          "preference_012_target"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "preference_012_target"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "rejected",
+          "reason": "No candidate memory provides guidance or fact relevant to steps before generalizing a rule.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "preference_012_target",
+            "preference_012_distractor_b",
+            "preference_012_distractor_a"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_d94bb9727be1417cbad1720388ebdaf1",
+              "mem_c6456ec6b6724972a34d8500e661fe28",
+              "mem_b14230d54ca446198cecf0c8648aeee0"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "semantic_public_realm_progress_018",
+        "category": "public_realmem_project_progress",
+        "failure_type": "false_negative+unexpected",
+        "query": "What should I say if asked what exists?",
+        "expected_aliases": [
+          "realm_progress_018_target"
+        ],
+        "actual_aliases": [
+          "realm_progress_018_distractor_a"
+        ],
+        "missing_aliases": [
+          "realm_progress_018_target"
+        ],
+        "unexpected_aliases": [
+          "realm_progress_018_distractor_a"
+        ],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The user_preference about starting explanations with concrete examples should guide how the agent responds to the query about what to say when asked what exists.",
+          "selected_aliases": [
+            "realm_progress_018_distractor_a"
+          ],
+          "candidate_aliases": [
+            "realm_progress_018_distractor_a",
+            "realm_progress_018_distractor_b",
+            "realm_progress_018_target"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_e3fdab3c2dd44b2db510d0cba583ee94",
+              "mem_723447d9a9a4403e90e5c58902239c19",
+              "mem_9839723b27a84226b10e2511aa5c950d"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      }
+    ]
+  }
+}

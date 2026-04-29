@@ -20,6 +20,7 @@ from memory_system.remote import (
     RemoteAdapterNotConfiguredError,
     RemoteEmbeddingClient,
     RemoteLLMClient,
+    route_item_to_memory_candidate,
 )
 from memory_system.remote_evaluation import (
     backfill_remote_memory_embeddings,
@@ -32,10 +33,12 @@ from memory_system.remote_evaluation import (
 )
 from memory_system.schemas import (
     ConflictReviewItemRead,
+    EventRead,
     MaintenanceReviewItemRead,
     RemoteCandidateImportResult,
     SearchMemoryInput,
 )
+from memory_system.session_memory import SessionMemoryStore, session_item_from_route_item
 
 
 DEFAULT_DB_PATH = os.environ.get("MEMORY_SYSTEM_DB", "data/memory.sqlite")
@@ -174,7 +177,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     remote_extract = remote_commands.add_parser(
         "extract",
-        help="Ask the remote LLM adapter to propose candidates for an event.",
+        help=(
+            "Legacy long-term-only dry run: ask the remote LLM adapter to propose "
+            "candidates for one event. Prefer `remote route` for normal memory routing."
+        ),
     )
     remote_extract.add_argument("event_id")
     remote_extract.add_argument("--instructions")
@@ -183,12 +189,38 @@ def build_parser() -> argparse.ArgumentParser:
 
     remote_import = remote_commands.add_parser(
         "import",
-        help="Import remote LLM candidates into the local pending candidate queue.",
+        help=(
+            "Legacy long-term-only import: write remote LLM candidates into the local "
+            "pending candidate queue. Prefer `remote route` for normal memory routing."
+        ),
     )
     remote_import.add_argument("event_id")
     remote_import.add_argument("--instructions")
     remote_import.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     remote_import.set_defaults(func=_cmd_remote_import)
+
+    remote_route = remote_commands.add_parser(
+        "route",
+        help="Route remote LLM memory items into long-term candidates and session memory.",
+    )
+    remote_route.add_argument(
+        "--event-id",
+        dest="event_ids",
+        action="append",
+        default=[],
+        help="Target event id to route. Can be passed multiple times.",
+    )
+    remote_route.add_argument(
+        "--recent-event-id",
+        dest="recent_event_ids",
+        action="append",
+        default=[],
+        help="Context-only event id. Can be passed multiple times.",
+    )
+    remote_route.add_argument("--session-id", default="default")
+    remote_route.add_argument("--instructions")
+    remote_route.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    remote_route.set_defaults(func=_cmd_remote_route)
 
     remote_evaluate = remote_commands.add_parser(
         "evaluate",
@@ -351,7 +383,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     remote_evaluate_retrieval.add_argument("--model")
     remote_evaluate_retrieval.add_argument("--limit", type=int)
+    remote_evaluate_retrieval.add_argument(
+        "--sample-size",
+        type=int,
+        help="Randomly sample this many retrieval cases before applying limit.",
+    )
+    remote_evaluate_retrieval.add_argument(
+        "--sample-seed",
+        type=int,
+        help="Seed for reproducible retrieval fixture sampling.",
+    )
     remote_evaluate_retrieval.add_argument("--batch-size", type=int, default=16)
+    remote_evaluate_retrieval.add_argument(
+        "--case-concurrency",
+        type=int,
+        default=1,
+        help="Number of test cases to evaluate concurrently.",
+    )
+    remote_evaluate_retrieval.add_argument(
+        "--judge-concurrency",
+        type=int,
+        default=1,
+        help="Number of remote LLM judge requests to run concurrently.",
+    )
+    remote_evaluate_retrieval.add_argument(
+        "--judge-group-size",
+        type=int,
+        default=1,
+        help="Number of pending judge tasks to put in each remote LLM judge request.",
+    )
+    remote_evaluate_retrieval.add_argument(
+        "--embedding-cache",
+        help="Optional JSONL cache path for remote embedding vectors.",
+    )
+    remote_evaluate_retrieval.add_argument(
+        "--report-path",
+        help="Optional path to write the full JSON evaluation report.",
+    )
     remote_evaluate_retrieval.add_argument("--guard-top-k", type=int, default=3)
     remote_evaluate_retrieval.add_argument("--guard-min-similarity", type=float, default=0.20)
     remote_evaluate_retrieval.add_argument("--guard-ambiguity-margin", type=float, default=0.03)
@@ -535,28 +603,38 @@ def _cmd_maintenance_resolve(args: argparse.Namespace, store: MemoryStore) -> in
 
 def _cmd_remote_status(args: argparse.Namespace, store: MemoryStore) -> int:
     del store
-    config = RemoteAdapterConfig.from_env()
-    payload = config.to_read_model().model_dump(mode="json")
+    llm_payload = RemoteAdapterConfig.llm_from_env().to_read_model().model_dump(mode="json")
+    embedding_payload = (
+        RemoteAdapterConfig.embedding_from_env().to_read_model().model_dump(mode="json")
+    )
+    payload = {**llm_payload, "llm": llm_payload, "embedding": embedding_payload}
     if args.json:
         _print_json(payload)
     else:
-        print(f"Configured: {payload['configured']}")
-        print(f"Base URL: {payload['base_url'] or '-'}")
-        print(f"Compatibility: {payload['compatibility']}")
-        print(f"Embedding compatibility: {payload['embedding_compatibility']}")
-        print(f"Timeout seconds: {payload['timeout_seconds']}")
-        print(f"API key configured: {payload['api_key_configured']}")
-        print(f"LLM extract path: {payload['llm_extract_path']}")
-        print(f"Embedding path: {payload['embedding_path']}")
-        print(f"Health path: {payload['health_path']}")
-        print(f"LLM model: {payload['llm_model'] or '-'}")
-        print(f"Embedding model: {payload['embedding_model'] or '-'}")
+        print("LLM:")
+        print(f"  Configured: {llm_payload['configured']}")
+        print(f"  Base URL: {llm_payload['base_url'] or '-'}")
+        print(f"  Compatibility: {llm_payload['compatibility']}")
+        print(f"  Timeout seconds: {llm_payload['timeout_seconds']}")
+        print(f"  API key configured: {llm_payload['api_key_configured']}")
+        print(f"  LLM extract path: {llm_payload['llm_extract_path']}")
+        print(f"  Health path: {llm_payload['health_path']}")
+        print(f"  LLM model: {llm_payload['llm_model'] or '-'}")
+        print("Embedding:")
+        print(f"  Configured: {embedding_payload['configured']}")
+        print(f"  Base URL: {embedding_payload['base_url'] or '-'}")
+        print(f"  Compatibility: {embedding_payload['compatibility']}")
+        print(f"  Embedding compatibility: {embedding_payload['embedding_compatibility']}")
+        print(f"  Timeout seconds: {embedding_payload['timeout_seconds']}")
+        print(f"  API key configured: {embedding_payload['api_key_configured']}")
+        print(f"  Embedding path: {embedding_payload['embedding_path']}")
+        print(f"  Embedding model: {embedding_payload['embedding_model'] or '-'}")
     return 0
 
 
 def _cmd_remote_health(args: argparse.Namespace, store: MemoryStore) -> int:
     del store
-    payload = RemoteLLMClient(RemoteAdapterConfig.from_env()).health()
+    payload = RemoteLLMClient(RemoteAdapterConfig.llm_from_env()).health()
     if args.json:
         _print_json(payload)
     else:
@@ -569,7 +647,7 @@ def _cmd_remote_extract(args: argparse.Namespace, store: MemoryStore) -> int:
     event = EventLog(Path(args.db)).get_event(args.event_id)
     if event is None:
         raise MemoryNotFoundError(args.event_id)
-    result = RemoteLLMClient(RemoteAdapterConfig.from_env()).extract_candidates(
+    result = RemoteLLMClient(RemoteAdapterConfig.llm_from_env()).extract_candidates(
         event,
         instructions=args.instructions,
     )
@@ -591,7 +669,7 @@ def _cmd_remote_import(args: argparse.Namespace, store: MemoryStore) -> int:
     event = EventLog(Path(args.db)).get_event(args.event_id)
     if event is None:
         raise MemoryNotFoundError(args.event_id)
-    extracted = RemoteLLMClient(RemoteAdapterConfig.from_env()).extract_candidates(
+    extracted = RemoteLLMClient(RemoteAdapterConfig.llm_from_env()).extract_candidates(
         event,
         instructions=args.instructions,
     )
@@ -622,6 +700,121 @@ def _cmd_remote_import(args: argparse.Namespace, store: MemoryStore) -> int:
     return 0
 
 
+def _cmd_remote_route(args: argparse.Namespace, store: MemoryStore) -> int:
+    if not args.event_ids:
+        raise ValueError("at least one --event-id is required")
+
+    event_log = EventLog(Path(args.db))
+    events = [_require_event(event_log, event_id) for event_id in args.event_ids]
+    recent_events = [
+        _require_event(event_log, event_id)
+        for event_id in args.recent_event_ids
+    ]
+    routed = RemoteLLMClient(RemoteAdapterConfig.llm_from_env()).route_memories(
+        events,
+        recent_events=recent_events,
+        instructions=args.instructions,
+    )
+
+    event_by_id = {event.id: event for event in [*events, *recent_events]}
+    session_store = SessionMemoryStore()
+    long_term: list[dict[str, Any]] = []
+    session_memories: list[dict[str, Any]] = []
+    ignored: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+    ask_user: list[dict[str, Any]] = []
+
+    for item in routed.items:
+        primary_event = _primary_route_event(item.source_event_ids, event_by_id, events)
+        route_payload = item.model_dump(mode="json")
+        if item.route == "long_term":
+            candidate = route_item_to_memory_candidate(item, primary_event)
+            if candidate is None:
+                ask_user.append(
+                    {
+                        "route_item": route_payload,
+                        "reason": "long_term route could not be converted into a candidate",
+                    }
+                )
+                continue
+            stored_candidate = store.create_candidate(candidate)
+            decision = store.evaluate_candidate(stored_candidate.id)
+            long_term.append(
+                {
+                    "route_item": route_payload,
+                    "candidate": stored_candidate.model_dump(mode="json"),
+                    "decision": decision.model_dump(mode="json"),
+                }
+            )
+            continue
+
+        if item.route == "session":
+            session_item = session_item_from_route_item(
+                primary_event,
+                item,
+                session_id=args.session_id,
+            )
+            if session_item is None:
+                ask_user.append(
+                    {
+                        "route_item": route_payload,
+                        "reason": "session route could not be converted into session memory",
+                    }
+                )
+                continue
+            stored_session = session_store.add_item(session_item)
+            session_memories.append(stored_session.model_dump(mode="json"))
+            continue
+
+        if item.route == "ignore":
+            ignored.append(route_payload)
+        elif item.route == "reject":
+            rejected.append(route_payload)
+        elif item.route == "ask_user":
+            ask_user.append(route_payload)
+
+    payload = {
+        "provider": routed.provider,
+        "long_term": long_term,
+        "session": session_memories,
+        "ignored": ignored,
+        "rejected": rejected,
+        "ask_user": ask_user,
+        "warnings": routed.warnings,
+        "metadata": {
+            **routed.metadata,
+            "event_ids": [event.id for event in events],
+            "recent_event_ids": [event.id for event in recent_events],
+            "session_id": args.session_id,
+            "auto_committed": False,
+            "session_persisted": False,
+        },
+    }
+
+    if args.json:
+        _print_json(payload)
+    else:
+        print(f"Provider: {routed.provider}")
+        print(f"Long-term candidates: {len(long_term)}")
+        print(f"Session memories: {len(session_memories)}")
+        print(f"Ignored: {len(ignored)}")
+        print(f"Rejected: {len(rejected)}")
+        print(f"Ask user: {len(ask_user)}")
+        for item in long_term:
+            candidate = item["candidate"]
+            decision = item["decision"]
+            print(
+                f"- long_term {candidate['id']} "
+                f"[{candidate['memory_type']}/{decision['decision']}] "
+                f"{candidate['subject']}"
+            )
+        for item in session_memories:
+            print(f"- session [{item['memory_type']}] {item['subject']}")
+        for warning in routed.warnings:
+            print(f"warning: {warning}")
+    return 0
+
+
 def _cmd_remote_evaluate(args: argparse.Namespace, store: MemoryStore) -> int:
     events = load_events_for_remote_evaluation(
         EventLog(Path(args.db)),
@@ -634,7 +827,7 @@ def _cmd_remote_evaluate(args: argparse.Namespace, store: MemoryStore) -> int:
     result = evaluate_remote_candidate_quality(
         events,
         store,
-        RemoteLLMClient(RemoteAdapterConfig.from_env()),
+        RemoteLLMClient(RemoteAdapterConfig.llm_from_env()),
         instructions=args.instructions,
     )
     if args.json:
@@ -656,7 +849,7 @@ def _cmd_remote_evaluate(args: argparse.Namespace, store: MemoryStore) -> int:
 
 def _cmd_remote_embed(args: argparse.Namespace, store: MemoryStore) -> int:
     del store
-    result = RemoteEmbeddingClient(RemoteAdapterConfig.from_env()).embed_texts(
+    result = RemoteEmbeddingClient(RemoteAdapterConfig.embedding_from_env()).embed_texts(
         args.text,
         model=args.model,
     )
@@ -676,7 +869,7 @@ def _cmd_remote_embed_memory(args: argparse.Namespace, store: MemoryStore) -> in
     if memory is None:
         raise MemoryNotFoundError(args.memory_id)
     text = build_memory_embedding_text(memory)
-    result = RemoteEmbeddingClient(RemoteAdapterConfig.from_env()).embed_texts(
+    result = RemoteEmbeddingClient(RemoteAdapterConfig.embedding_from_env()).embed_texts(
         [text],
         model=args.model,
     )
@@ -702,7 +895,7 @@ def _cmd_remote_embed_memory(args: argparse.Namespace, store: MemoryStore) -> in
 def _cmd_remote_embed_backfill(args: argparse.Namespace, store: MemoryStore) -> int:
     result = backfill_remote_memory_embeddings(
         store,
-        RemoteEmbeddingClient(RemoteAdapterConfig.from_env()),
+        RemoteEmbeddingClient(RemoteAdapterConfig.embedding_from_env()),
         model=args.model,
         scope=args.scope,
         memory_type=args.memory_type,
@@ -730,7 +923,7 @@ def _cmd_remote_embed_backfill(args: argparse.Namespace, store: MemoryStore) -> 
 
 
 def _cmd_remote_hybrid_search(args: argparse.Namespace, store: MemoryStore) -> int:
-    result = RemoteEmbeddingClient(RemoteAdapterConfig.from_env()).embed_texts(
+    result = RemoteEmbeddingClient(RemoteAdapterConfig.embedding_from_env()).embed_texts(
         [args.query],
         model=args.model,
     )
@@ -759,7 +952,7 @@ def _cmd_remote_hybrid_search(args: argparse.Namespace, store: MemoryStore) -> i
 def _cmd_remote_guarded_hybrid_search(args: argparse.Namespace, store: MemoryStore) -> int:
     result = remote_guarded_hybrid_search(
         store,
-        RemoteEmbeddingClient(RemoteAdapterConfig.from_env()),
+        RemoteEmbeddingClient(RemoteAdapterConfig.embedding_from_env()),
         query=args.query,
         scopes=args.scope,
         memory_types=args.memory_type,
@@ -790,11 +983,12 @@ def _cmd_remote_guarded_hybrid_search(args: argparse.Namespace, store: MemorySto
 
 
 def _cmd_remote_llm_guarded_hybrid_search(args: argparse.Namespace, store: MemoryStore) -> int:
-    config = RemoteAdapterConfig.from_env()
+    embedding_config = RemoteAdapterConfig.embedding_from_env()
+    llm_config = RemoteAdapterConfig.llm_from_env()
     result = remote_llm_guarded_hybrid_search(
         store,
-        RemoteEmbeddingClient(config),
-        RemoteLLMClient(config),
+        RemoteEmbeddingClient(embedding_config),
+        RemoteLLMClient(llm_config),
         query=args.query,
         scopes=args.scope,
         memory_types=args.memory_type,
@@ -830,11 +1024,12 @@ def _cmd_remote_selective_llm_guarded_hybrid_search(
     args: argparse.Namespace,
     store: MemoryStore,
 ) -> int:
-    config = RemoteAdapterConfig.from_env()
+    embedding_config = RemoteAdapterConfig.embedding_from_env()
+    llm_config = RemoteAdapterConfig.llm_from_env()
     result = remote_selective_llm_guarded_hybrid_search(
         store,
-        RemoteEmbeddingClient(config),
-        RemoteLLMClient(config),
+        RemoteEmbeddingClient(embedding_config),
+        RemoteLLMClient(llm_config),
         query=args.query,
         scopes=args.scope,
         memory_types=args.memory_type,
@@ -875,25 +1070,39 @@ def _cmd_remote_selective_llm_guarded_hybrid_search(
 
 def _cmd_remote_evaluate_retrieval(args: argparse.Namespace, store: MemoryStore) -> int:
     del store
-    config = RemoteAdapterConfig.from_env()
+    embedding_config = RemoteAdapterConfig.embedding_from_env()
+    llm_config = RemoteAdapterConfig.llm_from_env()
     result = evaluate_remote_retrieval_fixture(
         args.fixture,
-        RemoteEmbeddingClient(config),
-        remote_llm=RemoteLLMClient(config)
+        RemoteEmbeddingClient(embedding_config),
+        remote_llm=RemoteLLMClient(llm_config)
         if args.llm_judge or args.selective_llm_judge
         else None,
         include_llm_judge=args.llm_judge,
         include_selective_llm_judge=args.selective_llm_judge,
         model=args.model,
         limit=args.limit,
+        sample_size=args.sample_size,
+        sample_seed=args.sample_seed,
         batch_size=args.batch_size,
+        case_concurrency=args.case_concurrency,
+        judge_concurrency=args.judge_concurrency,
+        judge_group_size=args.judge_group_size,
         guard_top_k=args.guard_top_k,
         guard_min_similarity=args.guard_min_similarity,
         guard_ambiguity_margin=args.guard_ambiguity_margin,
         selective_min_similarity=args.selective_min_similarity,
         selective_ambiguity_margin=args.selective_ambiguity_margin,
+        embedding_cache_path=args.embedding_cache,
     )
     payload = result.model_dump(mode="json")
+    if args.report_path:
+        report_path = Path(args.report_path)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     if args.json:
         _print_json(payload)
     else:
@@ -929,6 +1138,31 @@ def _cmd_remote_evaluate_retrieval(args: argparse.Namespace, store: MemoryStore)
                     for mode in category_summary.passed_by_mode
                 ]
                 print(f"{category}: cases={category_summary.case_count} " + " ".join(parts))
+        cache_meta = result.metadata.get("embedding_cache", {})
+        if isinstance(cache_meta, dict) and cache_meta.get("enabled"):
+            print(
+                "Embedding cache: "
+                f"hits={cache_meta.get('hits', 0)} "
+                f"misses={cache_meta.get('misses', 0)} "
+                f"writes={cache_meta.get('writes', 0)} "
+                f"path={cache_meta.get('path', '-')}"
+            )
+        if args.report_path:
+            print(f"Report: {args.report_path}")
+        print(f"Case concurrency: {result.metadata.get('case_concurrency', 1)}")
+        judge_meta = result.metadata.get("judge", {})
+        if isinstance(judge_meta, dict):
+            print(
+                "Judge: "
+                f"mode={judge_meta.get('mode', 'single')} "
+                f"group_size={judge_meta.get('group_size', 1)} "
+                f"concurrency={judge_meta.get('concurrency', 1)} "
+                f"pending={judge_meta.get('pending_tasks', 0)} "
+                f"single_calls={judge_meta.get('single_calls', 0)} "
+                f"batch_count={judge_meta.get('batch_count', 0)} "
+                f"batch_calls={judge_meta.get('batch_calls', 0)} "
+                f"fallback_single={judge_meta.get('fallback_single_calls', 0)}"
+            )
         for warning in result.warnings:
             print(f"warning: {warning}")
     return 0
@@ -939,6 +1173,25 @@ def _require_review(store: MemoryStore, review_id: str) -> ConflictReviewItemRea
     if review is None:
         raise MemoryNotFoundError(review_id)
     return review
+
+
+def _require_event(event_log: EventLog, event_id: str) -> EventRead:
+    event = event_log.get_event(event_id)
+    if event is None:
+        raise MemoryNotFoundError(event_id)
+    return event
+
+
+def _primary_route_event(
+    source_event_ids: list[str],
+    event_by_id: dict[str, EventRead],
+    events: list[EventRead],
+) -> EventRead:
+    for event_id in source_event_ids:
+        event = event_by_id.get(event_id)
+        if event is not None:
+            return event
+    return events[0]
 
 
 def _require_maintenance_review(

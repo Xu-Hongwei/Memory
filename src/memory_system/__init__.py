@@ -9,6 +9,7 @@ from memory_system.remote import (
     RemoteEmbeddingClient,
     RemoteHTTPClient,
     RemoteLLMClient,
+    route_item_to_memory_candidate,
 )
 from memory_system.remote_evaluation import (
     evaluate_remote_candidate_quality,
@@ -18,6 +19,14 @@ from memory_system.remote_evaluation import (
     remote_selective_llm_guarded_hybrid_search,
 )
 from memory_system.recall_orchestrator import orchestrate_recall
+from memory_system.session_memory import (
+    SessionMemoryStore,
+    classify_session_memory_type,
+    compose_context_with_session,
+    extract_session_items_from_event,
+    session_item_from_candidate,
+    session_item_from_route_item,
+)
 from memory_system.task_recall import RecallPlanner, recall_for_task
 from memory_system.schemas import (
     CandidateScores,
@@ -38,6 +47,8 @@ from memory_system.schemas import (
     MemoryEmbeddingRead,
     MemoryEntityCreate,
     MemoryEntityRead,
+    MemoryRoute,
+    MemoryRouteItem,
     MemoryUsageStatsRead,
     MemoryItemCreate,
     MemoryItemRead,
@@ -59,6 +70,7 @@ from memory_system.schemas import (
     RemoteEmbeddingResult,
     RemoteGuardedSearchResult,
     RemoteLLMGuardedSearchResult,
+    RemoteMemoryRouteResult,
     RemoteRecallJudgeResult,
     RemoteRetrievalCategorySummary,
     RemoteRetrievalEvaluationItem,
@@ -69,6 +81,11 @@ from memory_system.schemas import (
     RetrievalLogCreate,
     RetrievalLogRead,
     SearchMemoryInput,
+    SessionMemoryExtractionResult,
+    SessionMemoryItemCreate,
+    SessionMemoryItemRead,
+    SessionMemoryStatus,
+    SessionMemoryType,
     TaskRecallResult,
 )
 
@@ -92,6 +109,8 @@ __all__ = [
     "MemoryEmbeddingRead",
     "MemoryEntityCreate",
     "MemoryEntityRead",
+    "MemoryRoute",
+    "MemoryRouteItem",
     "MemoryUsageStatsRead",
     "MemoryItemCreate",
     "MemoryItemRead",
@@ -121,6 +140,7 @@ __all__ = [
     "RemoteEmbeddingResult",
     "RemoteGuardedSearchResult",
     "RemoteLLMGuardedSearchResult",
+    "RemoteMemoryRouteResult",
     "RemoteRecallJudgeResult",
     "RemoteRetrievalCategorySummary",
     "RemoteRetrievalEvaluationItem",
@@ -134,10 +154,19 @@ __all__ = [
     "RetrievalLogRead",
     "SearchMemoryInput",
     "SensitiveContentError",
+    "SessionMemoryExtractionResult",
+    "SessionMemoryItemCreate",
+    "SessionMemoryItemRead",
+    "SessionMemoryStatus",
+    "SessionMemoryStore",
+    "SessionMemoryType",
     "TaskRecallResult",
+    "classify_session_memory_type",
     "compose_context",
+    "compose_context_with_session",
     "create_app",
     "evaluate_remote_candidate_quality",
+    "extract_session_items_from_event",
     "graph_recall_for_task",
     "load_events_for_remote_evaluation",
     "orchestrate_recall",
@@ -145,6 +174,9 @@ __all__ = [
     "remote_guarded_hybrid_search",
     "remote_llm_guarded_hybrid_search",
     "remote_selective_llm_guarded_hybrid_search",
+    "route_item_to_memory_candidate",
+    "session_item_from_candidate",
+    "session_item_from_route_item",
 ]
 
 

@@ -5,3 +5,5 @@ __pycache__/
 data/*.sqlite
 data/*.sqlite-*
 data/*.log
+data/*.json
+data/*.jsonl

@@ -87,6 +87,16 @@ EvidenceType = Literal[
     "unknown",
 ]
 TimeValidity = Literal["persistent", "until_changed", "session", "unknown"]
+MemoryRoute = Literal["long_term", "session", "ignore", "reject", "ask_user"]
+SessionMemoryType = Literal[
+    "task_state",
+    "temporary_rule",
+    "working_fact",
+    "pending_decision",
+    "emotional_state",
+    "scratch_note",
+]
+SessionMemoryStatus = Literal["active", "expired", "dismissed"]
 EntityType = Literal[
     "repo",
     "file",
@@ -196,6 +206,43 @@ class MemoryItemRead(MemoryItemCreate):
     updated_at: datetime
     last_used_at: datetime | None = None
     last_verified_at: datetime | None = None
+
+
+class SessionMemoryItemCreate(BaseModel):
+    content: str
+    session_id: str = "default"
+    memory_type: SessionMemoryType = "scratch_note"
+    scope: str = "session"
+    subject: str
+    source_event_ids: list[str] = Field(default_factory=list)
+    reason: str = ""
+    expires_at: datetime | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("content", "session_id", "scope", "subject")
+    @classmethod
+    def require_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("value must not be empty")
+        return stripped
+
+
+class SessionMemoryItemRead(SessionMemoryItemCreate):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    status: SessionMemoryStatus = "active"
+    created_at: datetime
+    updated_at: datetime
+    last_used_at: datetime | None = None
+
+
+class SessionMemoryExtractionResult(BaseModel):
+    session_id: str
+    items: list[SessionMemoryItemCreate] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class MemoryVersionRead(BaseModel):
@@ -544,6 +591,42 @@ class RemoteCandidateExtractionResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class MemoryRouteItem(BaseModel):
+    route: MemoryRoute
+    content: str
+    reason: str
+    memory_type: MemoryType | None = None
+    session_memory_type: SessionMemoryType | None = None
+    scope: str | None = None
+    subject: str | None = None
+    source_event_ids: list[str] = Field(default_factory=list)
+    claim: str | None = None
+    evidence_type: EvidenceType = "unknown"
+    time_validity: TimeValidity = "unknown"
+    reuse_cases: list[str] = Field(default_factory=list)
+    scores: CandidateScores = Field(default_factory=CandidateScores)
+    confidence: Confidence = "unknown"
+    risk: Risk = "low"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("content", "reason")
+    @classmethod
+    def require_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("value must not be empty")
+        return stripped
+
+
+class RemoteMemoryRouteResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    provider: str = "remote"
+    items: list[MemoryRouteItem] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class RemoteCandidateImportResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -667,6 +750,8 @@ class RemoteRetrievalEvaluationItem(BaseModel):
     ambiguous_by_mode: dict[str, list[str]] = Field(default_factory=dict)
     passed_by_mode: dict[str, bool] = Field(default_factory=dict)
     judge_by_mode: dict[str, RemoteRetrievalJudgeRead] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RemoteRetrievalEvaluationSummary(BaseModel):
@@ -712,6 +797,7 @@ class RemoteRetrievalEvaluationResult(BaseModel):
     category_summary: dict[str, RemoteRetrievalCategorySummary] = Field(default_factory=dict)
     items: list[RemoteRetrievalEvaluationItem] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RemoteRetrievalGuardDecisionRead(BaseModel):

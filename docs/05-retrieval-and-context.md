@@ -373,14 +373,20 @@ POST /memories/{memory_id}/embedding/remote
 POST /memories/embeddings/remote-backfill
 POST /memories/search/remote-hybrid
 POST /memories/search/remote-guarded-hybrid
+POST /memories/search/remote-llm-guarded-hybrid
+POST /memories/search/remote-selective-llm-guarded-hybrid
 POST /remote/evaluate-retrieval
 
 memoryctl remote embed-memory <memory_id>
 memoryctl remote embed-backfill --scope <scope>
 memoryctl remote hybrid-search "<query>"
 memoryctl remote guarded-hybrid-search "<query>"
+memoryctl remote llm-guarded-hybrid-search "<query>"
+memoryctl remote selective-llm-guarded-hybrid-search "<query>"
 memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval.jsonl
 memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_v2.jsonl
+memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_cn.jsonl --selective-llm-judge
+memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --embedding-cache data/eval_embedding_cache.jsonl --report-path data/retrieval_report.json --case-concurrency 4 --judge-group-size 4 --judge-concurrency 2
 ```
 
 实现约束：
@@ -393,6 +399,7 @@ memoryctl remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semant
 Batch / evaluation additions:
 
 - `embed-backfill` only fills active memories missing the selected model embedding; it can be limited by scope and memory_type.
-- `evaluate-retrieval` compares keyword / semantic / hybrid against a fixture and reports false negatives plus unexpected aliases.
-- `evaluate-retrieval` also reports per-category metrics, which is useful when comparing the 50-case v1 fixture with the 200-case v2 fixture.
+- `evaluate-retrieval` compares keyword / semantic / hybrid / guarded_hybrid against a fixture and reports false negatives, unexpected aliases, ambiguous candidates, and top-1 hits.
+- `evaluate-retrieval` can also include `llm_guarded_hybrid` or `selective_llm_guarded_hybrid`, and reports per-category metrics for v1, v2, cn, and public-inspired fixtures.
+- Large remote runs should pass `--embedding-cache`, `--report-path`, and a modest `--case-concurrency` value so repeated runs reuse completed vectors, keep a stable JSON report for diffing, and parallelize embedding prefetch plus case evaluation. Case workers only run local retrieval and guard; remote recall judge always runs afterward through a separate request concurrency and group-size layer. `--judge-group-size 1 --judge-concurrency 4` sends multiple one-task requests in parallel, while `--judge-group-size 2|4 --judge-concurrency 2` groups uncertain cases to reduce DeepSeek request count.
 - `guarded-hybrid-search` adds a second-stage guard: low similarity is rejected; close top-1/top-2 scores first go through a lightweight local intent rerank, and only unresolved close matches are marked ambiguous.

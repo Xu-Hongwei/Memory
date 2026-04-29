@@ -1,0 +1,852 @@
+{
+  "created_at": "2026-04-29T10:48:41.809789+00:00",
+  "fixture": "tests\\fixtures\\golden_cases\\retrieval_context.jsonl",
+  "limit": 150,
+  "embedding_cache": "data\\benchmark_remote_retrieval_context_embeddings.jsonl",
+  "case_concurrency": 4,
+  "rows": [
+    {
+      "name": "single_parallel4",
+      "seconds": 82.9,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 130,
+      "failed": 20,
+      "false_negative": 29,
+      "unexpected": 0,
+      "ambiguous": 18,
+      "pending_tasks": 33,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 4,
+      "single_calls": 33,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 510,
+      "cache_misses": 510,
+      "cache_writes": 510,
+      "report_path": "data\\remote_retrieval_414_context_150_private_judge\\single_parallel4.json"
+    }
+  ],
+  "failures": {
+    "single_parallel4": [
+      {
+        "case_name": "retrieval_current_scope_priority_000",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_000",
+        "expected_aliases": [
+          "scope_repo_000",
+          "scope_global_000"
+        ],
+        "actual_aliases": [
+          "scope_repo_000"
+        ],
+        "missing_aliases": [
+          "scope_global_000"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Candidate directly provides the start command for RET_SCOPE_000 in the alpha repo.",
+          "selected_aliases": [
+            "scope_repo_000"
+          ],
+          "candidate_aliases": [
+            "scope_repo_000",
+            "scope_global_000"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_1677d8ce38de42dd8a9e87c25b11188d",
+              "mem_29868b607ebd49c2bf0d1a191dc4b135"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_001",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_001",
+        "expected_aliases": [
+          "scope_repo_001",
+          "scope_global_001"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_001",
+          "scope_global_001"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_001",
+          "scope_global_001"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Conflicting start command values for RET_SCOPE_001 between mem_16250cb189ca43539884f999d6bda247 and mem_38ee3e445e3e423e8af907f07becb341; need verification.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_001",
+            "scope_global_001"
+          ],
+          "warnings": [
+            "Conflicting factual memories for the same scope: pnpm dev vs npm run dev"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_16250cb189ca43539884f999d6bda247",
+              "mem_38ee3e445e3e423e8af907f07becb341"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_002",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_002",
+        "expected_aliases": [
+          "scope_repo_002",
+          "scope_global_002"
+        ],
+        "actual_aliases": [
+          "scope_repo_002"
+        ],
+        "missing_aliases": [
+          "scope_global_002"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The candidate provides the specific start command for RET_SCOPE_002 in the alpha repo, directly answering the query.",
+          "selected_aliases": [
+            "scope_repo_002"
+          ],
+          "candidate_aliases": [
+            "scope_repo_002",
+            "scope_global_002"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_110de2c80439438b84d5c8a45dc8fcf6",
+              "mem_4ef1a960157e49feb2aceaaaa924e915"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_004",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_004",
+        "expected_aliases": [
+          "scope_repo_004",
+          "scope_global_004"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_004",
+          "scope_global_004"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_004",
+          "scope_global_004"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both candidates directly address the query for RET_SCOPE_004 start command but provide conflicting information (pnpm dev vs npm run dev). Requires verification to determine which is correct for the current project state.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_004",
+            "scope_global_004"
+          ],
+          "warnings": [
+            "Conflicting start command information recoved; verify actual command before use."
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_47881124094b4cadb459bf07f8e87bcf",
+              "mem_f020d3ebf855497faf04948ac36c4430"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_011",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_011",
+        "expected_aliases": [
+          "scope_repo_011",
+          "scope_global_011"
+        ],
+        "actual_aliases": [
+          "scope_repo_011"
+        ],
+        "missing_aliases": [
+          "scope_global_011"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Directly provides the start command for RET_SCOPE_011 in the alpha repo.",
+          "selected_aliases": [
+            "scope_repo_011"
+          ],
+          "candidate_aliases": [
+            "scope_repo_011",
+            "scope_global_011"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_30af0e4cccbc4a578df1383c3026ec4b",
+              "mem_8d32f0460ec34a61ac1c56583ab85626"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_016",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_016",
+        "expected_aliases": [
+          "scope_repo_016",
+          "scope_global_016"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_016",
+          "scope_global_016"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_016",
+          "scope_global_016"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both candidates directly address the query, but they provide different commands (pnpm dev vs npm run dev). The context (repo-specific vs global) is ambiguous without additional scope cues, so verification is needed.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_016",
+            "scope_global_016"
+          ],
+          "warnings": [
+            "Conflicting start commands for RET_SCOPE_016"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_977f2884f39c459e8256543d3ef73ad3",
+              "mem_441f2d5d44b24dadb1cb129ebd67dee5"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_018",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_018",
+        "expected_aliases": [
+          "scope_repo_018",
+          "scope_global_018"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_018",
+          "scope_global_018"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_018",
+          "scope_global_018"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both candidates provide start commands for RET_SCOPE_018 but conflict; requires scope resolution.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_018",
+            "scope_global_018"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_beed9e391eef4e80aba877c0ed0d2404",
+              "mem_2c764ed516c44cad96c688e8cfbf7cb1"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_019",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_019",
+        "expected_aliases": [
+          "scope_repo_019",
+          "scope_global_019"
+        ],
+        "actual_aliases": [
+          "scope_repo_019"
+        ],
+        "missing_aliases": [
+          "scope_global_019"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Candidate directly states the start command for RET_SCOPE_019 in the alpha repo.",
+          "selected_aliases": [
+            "scope_repo_019"
+          ],
+          "candidate_aliases": [
+            "scope_repo_019",
+            "scope_global_019"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_776f785ae7584f459fa01336c7554aa2",
+              "mem_2738b33ac591436abba6fd99afcfbf4a"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_025",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_025",
+        "expected_aliases": [
+          "scope_repo_025",
+          "scope_global_025"
+        ],
+        "actual_aliases": [
+          "scope_repo_025"
+        ],
+        "missing_aliases": [
+          "scope_global_025"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The candidate directly answers the query for the start command of RET_SCOPE_025 in the alpha repo, which is the specific scope requested.",
+          "selected_aliases": [
+            "scope_repo_025"
+          ],
+          "candidate_aliases": [
+            "scope_repo_025",
+            "scope_global_025"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_094a8f292f70444290b8e0624b1d4c5f",
+              "mem_ee2edf2ab5b94be08a22260ce3e83713"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_029",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_029",
+        "expected_aliases": [
+          "scope_repo_029",
+          "scope_global_029"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_029",
+          "scope_global_029"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_029",
+          "scope_global_029"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both candidates directly address the query but conflict: one specifies 'pnpm dev' for the alpha repo, the other specifies 'npm run dev' globally. Without further context, the correct start command is ambiguous.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_029",
+            "scope_global_029"
+          ],
+          "warnings": [
+            "Conflicting start command information for RET_SCOPE_029"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_adfa1e318f9c48deb8cf1216c8699d31",
+              "mem_149bdbcd8aed44038f196bbddb581248"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_032",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_032",
+        "expected_aliases": [
+          "scope_repo_032",
+          "scope_global_032"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_032",
+          "scope_global_032"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_032",
+          "scope_global_032"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both memories answer the query but provide conflicting start commands; need verification.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_032",
+            "scope_global_032"
+          ],
+          "warnings": [
+            "Conflicting memories detected"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_ea9b7c9e654e4d1cb1aacd531a17518f",
+              "mem_cce2cdb9869b47239f4d7bd7657e3ceb"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_035",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_035",
+        "expected_aliases": [
+          "scope_repo_035",
+          "scope_global_035"
+        ],
+        "actual_aliases": [
+          "scope_repo_035"
+        ],
+        "missing_aliases": [
+          "scope_global_035"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The candidate provides the precise start command for the alpha repository as requested.",
+          "selected_aliases": [
+            "scope_repo_035"
+          ],
+          "candidate_aliases": [
+            "scope_repo_035",
+            "scope_global_035"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_06dd9b1a0de14a948a9757544729d20a",
+              "mem_2f8b6e26329648a3be8259457794c883"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_038",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_038",
+        "expected_aliases": [
+          "scope_repo_038",
+          "scope_global_038"
+        ],
+        "actual_aliases": [
+          "scope_repo_038"
+        ],
+        "missing_aliases": [
+          "scope_global_038"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Directly answers the query with the start command for alpha repo.",
+          "selected_aliases": [
+            "scope_repo_038"
+          ],
+          "candidate_aliases": [
+            "scope_repo_038",
+            "scope_global_038"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_2b4a1c6b5de545ec8a40f011d274abd0",
+              "mem_708b5af5a2e54f9692e1d41577bc5bef"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_045",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_045",
+        "expected_aliases": [
+          "scope_repo_045",
+          "scope_global_045"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_045",
+          "scope_global_045"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_045",
+          "scope_global_045"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Two candidates provide conflicting start commands for the same scope identifier; need to verify which is correct.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_045",
+            "scope_global_045"
+          ],
+          "warnings": [
+            "Conflicting project facts for RET_SCOPE_045 start command."
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_1cae43105c5e484d9984c5c42764157a",
+              "mem_69d2e6b7b0d846f5b40e4b179c4e2eac"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_048",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_048",
+        "expected_aliases": [
+          "scope_repo_048",
+          "scope_global_048"
+        ],
+        "actual_aliases": [
+          "scope_repo_048"
+        ],
+        "missing_aliases": [
+          "scope_global_048"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Directly provides the start command for RET_SCOPE_048 in the alpha repo.",
+          "selected_aliases": [
+            "scope_repo_048"
+          ],
+          "candidate_aliases": [
+            "scope_repo_048",
+            "scope_global_048"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_b37c4c44e3ed484b99bc41dfb6dd6bc0",
+              "mem_97634659abbe406c96a01210c9cc42a0"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_053",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_053",
+        "expected_aliases": [
+          "scope_repo_053",
+          "scope_global_053"
+        ],
+        "actual_aliases": [
+          "scope_repo_053"
+        ],
+        "missing_aliases": [
+          "scope_global_053"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Directly provides the start command for RET_SCOPE_053 in the alpha repo.",
+          "selected_aliases": [
+            "scope_repo_053"
+          ],
+          "candidate_aliases": [
+            "scope_repo_053",
+            "scope_global_053"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_4178116f7b4048e38f6f38873554271a",
+              "mem_b5990340c272449498f81e8d01b555fe"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_054",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_054",
+        "expected_aliases": [
+          "scope_repo_054",
+          "scope_global_054"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_054",
+          "scope_global_054"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_054",
+          "scope_global_054"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Conflicting factual memories about the start command for RET_SCOPE_054: one indicates 'pnpm dev' (repo-specific), the other 'npm run dev' (global). Requires verification.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_054",
+            "scope_global_054"
+          ],
+          "warnings": [
+            "Conflicting facts"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_b98284f3e340416883553cba7d4493cb",
+              "mem_58fd4409c00b47e69bc04c92ccb8ba00"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_055",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative+ambiguous",
+        "query": "RET_SCOPE_055",
+        "expected_aliases": [
+          "scope_repo_055",
+          "scope_global_055"
+        ],
+        "actual_aliases": [],
+        "missing_aliases": [
+          "scope_repo_055",
+          "scope_global_055"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [
+          "scope_repo_055",
+          "scope_global_055"
+        ],
+        "item_warnings": [],
+        "judge": {
+          "decision": "ambiguous",
+          "reason": "Both candidates provide start commands for RET_SCOPE_055, but they differ (pnpm dev vs npm run dev). Verification needed to determine which is correct for the specific scope or context.",
+          "selected_aliases": [],
+          "candidate_aliases": [
+            "scope_repo_055",
+            "scope_global_055"
+          ],
+          "warnings": [
+            "Contradictory information between candidates"
+          ],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_c42971375d0542fa80fea9ebd48b732a",
+              "mem_9465f212bea74d16b3c3a032477f78ed"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_056",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_056",
+        "expected_aliases": [
+          "scope_repo_056",
+          "scope_global_056"
+        ],
+        "actual_aliases": [
+          "scope_repo_056"
+        ],
+        "missing_aliases": [
+          "scope_global_056"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "Directly answers the query for the alpha repo start command.",
+          "selected_aliases": [
+            "scope_repo_056"
+          ],
+          "candidate_aliases": [
+            "scope_repo_056",
+            "scope_global_056"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_6aa81f931324429e9bec36b5d046e6ef",
+              "mem_032be99d8fea4bf5920167ed88310848"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      {
+        "case_name": "retrieval_current_scope_priority_057",
+        "category": "retrieval_current_scope_priority",
+        "failure_type": "false_negative",
+        "query": "RET_SCOPE_057",
+        "expected_aliases": [
+          "scope_repo_057",
+          "scope_global_057"
+        ],
+        "actual_aliases": [
+          "scope_repo_057"
+        ],
+        "missing_aliases": [
+          "scope_global_057"
+        ],
+        "unexpected_aliases": [],
+        "ambiguous_aliases": [],
+        "item_warnings": [],
+        "judge": {
+          "decision": "accepted",
+          "reason": "The query asks for RET_SCOPE_057 start command; candidate mem_4ecaa70fab2e4a6bbeed1495ac752390 directly provides it for the alpha repo with confirmed status.",
+          "selected_aliases": [
+            "scope_repo_057"
+          ],
+          "candidate_aliases": [
+            "scope_repo_057",
+            "scope_global_057"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_4ecaa70fab2e4a6bbeed1495ac752390",
+              "mem_91f56bce937e45b6a3313225b9aaacf2"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -22,6 +22,7 @@ from memory_system.remote import (
     RemoteAdapterNotConfiguredError,
     RemoteEmbeddingClient,
     RemoteLLMClient,
+    route_item_to_memory_candidate,
 )
 from memory_system.remote_evaluation import (
     backfill_remote_memory_embeddings,
@@ -33,6 +34,7 @@ from memory_system.remote_evaluation import (
     remote_selective_llm_guarded_hybrid_search,
 )
 from memory_system.recall_orchestrator import orchestrate_recall
+from memory_system.session_memory import SessionMemoryStore, session_item_from_route_item
 from memory_system.task_recall import recall_for_task
 from memory_system.schemas import (
     CandidateStatus,
@@ -192,6 +194,13 @@ class RemoteExtractRequest(BaseModel):
     instructions: str | None = None
 
 
+class RemoteRouteRequest(BaseModel):
+    event_ids: list[str] = Field(default_factory=list)
+    recent_event_ids: list[str] = Field(default_factory=list)
+    session_id: str = "default"
+    instructions: str | None = None
+
+
 class RemoteEvaluationRequest(BaseModel):
     event_ids: list[str] = Field(default_factory=list)
     source: str | None = None
@@ -205,7 +214,13 @@ class RemoteRetrievalEvaluationRequest(BaseModel):
     fixture_path: str = "tests/fixtures/golden_cases/semantic_retrieval.jsonl"
     model: str | None = None
     limit: int | None = Field(default=None, ge=1)
+    sample_size: int | None = Field(default=None, ge=1)
+    sample_seed: int | None = None
     batch_size: int = Field(default=16, ge=1)
+    case_concurrency: int = Field(default=1, ge=1)
+    judge_concurrency: int = Field(default=1, ge=1)
+    judge_group_size: int = Field(default=1, ge=1)
+    embedding_cache_path: str | None = None
     guard_top_k: int = Field(default=3, ge=1)
     guard_min_similarity: float = Field(default=0.20, ge=0)
     guard_ambiguity_margin: float = Field(default=0.03, ge=0)
@@ -227,7 +242,8 @@ class MemoryRuntime:
     def __init__(self, db_path: str | Path) -> None:
         self.events = EventLog(db_path)
         self.memories = MemoryStore(db_path)
-        self.remote_config = RemoteAdapterConfig.from_env()
+        self.remote_config = RemoteAdapterConfig.llm_from_env()
+        self.remote_embedding_config = RemoteAdapterConfig.embedding_from_env()
 
     def remote_status(self) -> RemoteAdapterConfigRead:
         return self.remote_config.to_read_model()
@@ -236,7 +252,19 @@ class MemoryRuntime:
         return RemoteLLMClient(self.remote_config)
 
     def remote_embedding(self) -> RemoteEmbeddingClient:
-        return RemoteEmbeddingClient(self.remote_config)
+        return RemoteEmbeddingClient(self.remote_embedding_config)
+
+
+def _primary_route_event(
+    source_event_ids: list[str],
+    event_by_id: dict[str, EventRead],
+    fallback_events: list[EventRead],
+) -> EventRead:
+    for event_id in source_event_ids:
+        event = event_by_id.get(event_id)
+        if event is not None:
+            return event
+    return fallback_events[0]
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
@@ -321,6 +349,111 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             },
         )
 
+    @app.post("/remote/route")
+    def remote_route_memories(request: RemoteRouteRequest) -> dict[str, Any]:
+        if not request.event_ids:
+            raise HTTPException(status_code=400, detail="event_ids must not be empty")
+
+        events = []
+        for event_id in request.event_ids:
+            event = app.state.runtime.events.get_event(event_id)
+            if event is None:
+                raise HTTPException(status_code=404, detail=f"event not found: {event_id}")
+            events.append(event)
+
+        recent_events = []
+        for event_id in request.recent_event_ids:
+            event = app.state.runtime.events.get_event(event_id)
+            if event is None:
+                raise HTTPException(status_code=404, detail=f"recent event not found: {event_id}")
+            recent_events.append(event)
+
+        try:
+            routed = app.state.runtime.remote_llm().route_memories(
+                events,
+                recent_events=recent_events,
+                instructions=request.instructions,
+            )
+        except RemoteAdapterNotConfiguredError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except RemoteAdapterError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        event_by_id = {event.id: event for event in [*events, *recent_events]}
+        session_store = SessionMemoryStore()
+        long_term: list[dict[str, Any]] = []
+        session_memories: list[dict[str, Any]] = []
+        ignored: list[dict[str, Any]] = []
+        rejected: list[dict[str, Any]] = []
+        ask_user: list[dict[str, Any]] = []
+
+        for item in routed.items:
+            primary_event = _primary_route_event(item.source_event_ids, event_by_id, events)
+            route_payload = item.model_dump(mode="json")
+            if item.route == "long_term":
+                candidate = route_item_to_memory_candidate(item, primary_event)
+                if candidate is None:
+                    ask_user.append(
+                        {
+                            "route_item": route_payload,
+                            "reason": "long_term route could not be converted into a candidate",
+                        }
+                    )
+                    continue
+                stored_candidate = app.state.runtime.memories.create_candidate(candidate)
+                decision = app.state.runtime.memories.evaluate_candidate(stored_candidate.id)
+                long_term.append(
+                    {
+                        "route_item": route_payload,
+                        "candidate": stored_candidate.model_dump(mode="json"),
+                        "decision": decision.model_dump(mode="json"),
+                    }
+                )
+                continue
+
+            if item.route == "session":
+                session_item = session_item_from_route_item(
+                    primary_event,
+                    item,
+                    session_id=request.session_id,
+                )
+                if session_item is None:
+                    ask_user.append(
+                        {
+                            "route_item": route_payload,
+                            "reason": "session route could not be converted into session memory",
+                        }
+                    )
+                    continue
+                stored_session = session_store.add_item(session_item)
+                session_memories.append(stored_session.model_dump(mode="json"))
+                continue
+
+            if item.route == "ignore":
+                ignored.append(route_payload)
+            elif item.route == "reject":
+                rejected.append(route_payload)
+            elif item.route == "ask_user":
+                ask_user.append(route_payload)
+
+        return {
+            "provider": routed.provider,
+            "long_term": long_term,
+            "session": session_memories,
+            "ignored": ignored,
+            "rejected": rejected,
+            "ask_user": ask_user,
+            "warnings": routed.warnings,
+            "metadata": {
+                **routed.metadata,
+                "event_ids": [event.id for event in events],
+                "recent_event_ids": [event.id for event in recent_events],
+                "source": "remote_memory_route",
+                "auto_committed": False,
+                "session_persisted": False,
+            },
+        }
+
     @app.post("/remote/embed", response_model=RemoteEmbeddingResult)
     def remote_embed(request: RemoteEmbeddingRequest) -> RemoteEmbeddingResult:
         try:
@@ -374,12 +507,18 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 include_selective_llm_judge=request.include_selective_llm_judge,
                 model=request.model,
                 limit=request.limit,
+                sample_size=request.sample_size,
+                sample_seed=request.sample_seed,
                 batch_size=request.batch_size,
+                case_concurrency=request.case_concurrency,
+                judge_concurrency=request.judge_concurrency,
+                judge_group_size=request.judge_group_size,
                 guard_top_k=request.guard_top_k,
                 guard_min_similarity=request.guard_min_similarity,
                 guard_ambiguity_margin=request.guard_ambiguity_margin,
                 selective_min_similarity=request.selective_min_similarity,
                 selective_ambiguity_margin=request.selective_ambiguity_margin,
+                embedding_cache_path=request.embedding_cache_path,
             )
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc

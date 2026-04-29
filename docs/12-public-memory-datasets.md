@@ -17,6 +17,8 @@ E:\Xu\data\memory_benchmarks
 | `longmemeval` | Hugging Face `MemoryAsModality/LongMemEval` | 长期聊天记忆 QA，适合参考多会话问答、时间线、信息更新和拒答样式 |
 | `locomo_dialogues` | Hugging Face `Aman279/Locomo` | LoCoMo 长对话，适合参考跨 session 日常对话和事件沉淀 |
 | `locomo_benchmark_queries` | Hugging Face `Nithish2410/benchmark-locomo` | LoCoMo 风格 query/target 行，适合参考召回问题写法 |
+| `naturalconv_zh` | Hugging Face `xywang1/NaturalConv` | 中文多轮话题驱动对话，适合参考自然口语、话题转移和含糊偏好表达 |
+| `personal_dialog_zh` | Hugging Face `silver/personal_dialog` | 中文多轮对话和说话人画像，适合参考兴趣、地区、身份、persona 和社交闲聊表达 |
 | `RealMemBench` | GitHub `AvatarMemory/RealMemBench` | 项目型长期记忆 benchmark，适合参考项目目标、persona、长期任务和动态记忆 |
 
 下载结果记录在：
@@ -26,6 +28,23 @@ E:\Xu\data\memory_benchmarks\manifest.json
 ```
 
 RealMemBench 的 GitHub 仓库包含一个 Windows 非法文件名 `.env.example `。下载脚本使用 GitHub zip 包解压，并跳过这个文件；manifest 会记录 `skipped_windows_invalid_paths`。
+
+当前派生盘点报告：
+
+```text
+E:\Xu\data\memory_benchmarks\derived\reference_corpus_inventory.json
+E:\Xu\data\memory_benchmarks\derived\reference_corpus_inventory.md
+```
+
+盘点结果摘要：
+
+```text
+LongMemEval: 500 QA rows
+LoCoMo: 35 dialogue rows
+RealMemBench: 10 个 256k dialogue 文件
+NaturalConv: 19,919 dialogues / 400,562 utterances
+PersonalDialog: 5,438,165 train rows / 535.933 MB compressed
+```
 
 ## 如何重新下载
 
@@ -44,6 +63,12 @@ python tools\download_public_memory_datasets.py --output-root E:\Xu\data\memory_
 - `huggingface_hub`
 - `requests`
 - `git` 只用于后续可能增加的 Git repo 下载；当前 RealMemBench 使用 zip 包方式下载
+
+生成本地盘点报告：
+
+```powershell
+python tools\summarize_public_memory_datasets.py --root E:\Xu\data\memory_benchmarks
+```
 
 ## 如何用于本项目
 
@@ -96,10 +121,15 @@ tests/fixtures/golden_cases/semantic_retrieval_public.jsonl
 python tests\fixtures\golden_cases\generate_semantic_retrieval_public.py
 python tests\fixtures\golden_cases\audit_golden_cases.py --strict
 memoryctl --db data\memory.sqlite remote evaluate-retrieval --fixture tests\fixtures\golden_cases\semantic_retrieval_public.jsonl --json
+memoryctl --db data\memory.sqlite remote evaluate-retrieval --fixture tests\fixtures\golden_cases\semantic_retrieval_public.jsonl --embedding-cache data\eval_embedding_cache.jsonl --report-path data\retrieval_report_public.json --case-concurrency 4 --judge-group-size 4 --judge-concurrency 2 --json
 ```
+
+真实远程跑 public-inspired 样本时建议固定使用 `--embedding-cache`，避免重复请求同一批 embedding；`--report-path` 用来保留完整结果，后续调整阈值、模型或样本生成脚本时可以直接对比报告；`--case-concurrency` 可把 embedding 预取和 case 评估并发化，建议先从 3 或 4 开始。case 阶段只做本地召回和 guard；DeepSeek recall judge 后置调度，可以单独调并发和打包大小：`--judge-group-size 1 --judge-concurrency 4` 并发发送多个单条请求；`--judge-group-size 2|4 --judge-concurrency 2` 对比更少请求数下的速度和准确率。
 
 ## 优先仿照方向
 
 - LongMemEval / LoCoMo：补充长期聊天记忆的“问法变化”“时间顺序”“用户偏好变化”“不知道时拒答”。
 - RealMemBench：补充项目型记忆的“长期目标”“任务进展”“项目规则”“动态事实更新”“跨 session 工作流”。
+- NaturalConv：补充中文日常多轮对话中的自然话题切换、含糊反馈、追问和非记忆闲聊。
+- PersonalDialog：补充中文 persona/兴趣/地区/身份表达，并专门制造“看起来像偏好但不应写入”的社交噪声。
 - BEIR / MTEB 暂时不下载全量。它们更适合做 embedding 检索通用评测，不是完整记忆系统测试。

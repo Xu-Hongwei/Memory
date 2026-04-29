@@ -298,11 +298,11 @@ APScheduler
 ### 当前已实现能力
 
 - `RemoteAdapterConfig` 从环境变量读取远程地址、token、超时和路径配置。
-- `RemoteLLMClient.extract_candidates(...)` 调用远程 `/memory/extract`，返回结构化候选记忆。
+- `RemoteLLMClient.route_memories(...)` 调用远程 `/memory/extract`，把 event 分流为长期候选、短期会话记忆、忽略、拒绝和待确认；`extract_candidates(...)` 保留为 legacy long-term-only 调试入口。
 - `RemoteEmbeddingClient.embed_texts(...)` 调用远程 `/embeddings`，返回向量。
-- FastAPI 暴露 `/remote/status`、`/remote/health`、`/remote/extract/{event_id}`、`/remote/embed`。
-- CLI 暴露 `memoryctl remote status/health/extract/embed`。
-- 远程候选默认 dry-run，不自动进入 `memory_candidates`。
+- FastAPI 暴露 `/remote/status`、`/remote/health`、`/remote/route`、`/remote/extract/{event_id}`、`/remote/embed`。
+- CLI 暴露 `memoryctl remote status/health/route/extract/embed`。
+- 推荐分流链路中，长期项只进入 pending candidate 并走本地门禁，短期项只作为当前会话记忆返回。
 
 ### 验收标准
 

@@ -48,6 +48,7 @@ src/memory_system/
   context_composer.py     上下文组装和预算控制
   task_recall.py          自然语言任务召回
   recall_orchestrator.py  统一召回编排层
+  session_memory.py       会话级短期记忆和短期上下文组装
   graph_recall.py         轻量知识图谱召回和冲突检测
   remote.py               远程 LLM / embedding HTTP 适配器
   remote_evaluation.py    远程候选和远程召回评测
@@ -87,6 +88,8 @@ event
 ```
 
 系统不会把远程模型返回的候选直接写入长期记忆。候选必须先进入 `pending`，再经过本地 policy 判断，只有 `write` 或人工批准后才能 commit。
+
+远程 LLM 的推荐入口已经从单纯 `extract_candidates` 收敛为 `route_memories`：同一批 event 会先被拆成原子项，再分流为 `long_term`、`session`、`ignore`、`reject` 或 `ask_user`。其中 `long_term` 只创建 pending candidate 并走本地写入门禁，`session` 只作为当前会话短期记忆返回，不进入长期记忆库；旧的 `remote extract/import` 仍保留为 legacy long-term-only 调试入口。
 
 记忆状态：
 
@@ -169,16 +172,20 @@ Embedding: tongyi-embedding-vision-flash-2026-03-06
 
 ```text
 remote status: configured=true
-remote health: /models 可访问，qwen3.6-flash 可用
+remote status: LLM resolves to DeepSeek, embedding resolves to DashScope multimodal
 
 semantic_retrieval_public.jsonl / 300 cases
-keyword:        passed=168 failed=132 FN=93 unexpected=119 top1=167
+keyword:        passed=164 failed=136 FN=97 unexpected=123 top1=163
 semantic:       passed=247 failed=53  FN=13 unexpected=53  top1=247
 hybrid:         passed=247 failed=53  FN=13 unexpected=53  top1=247
 guarded_hybrid: passed=242 failed=58  FN=18 unexpected=18 ambiguous=80 top1=242
+
+semantic_retrieval_public.jsonl / first 60 cases / selective LLM smoke
+guarded_hybrid:               passed=54 failed=6 FN=6 unexpected=0 ambiguous=12 top1=54
+selective_llm_guarded_hybrid: passed=57 failed=3 FN=3 unexpected=0 ambiguous=6  top1=57
 ```
 
-2026-04-28 新增的中文语义召回集 `semantic_retrieval_cn.jsonl` 共 150 条。真实远程 embedding 分段跑完后，`semantic/hybrid` 在中文正向召回上表现强，但 no-match 会多召回；`guarded_hybrid` 能压噪声但会产生 ambiguous。随后加入具体事实风险触发器后，`cn_no_match_work` 的 `selective_llm_guarded_hybrid` 从 7/10 提升到 10/10，unexpected 从 3 降到 0。
+2026-04-29 复测 `semantic_retrieval_cn.jsonl` 共 150 条：`semantic/hybrid` 为 129/150，`guarded_hybrid` 为 127/150，`selective_llm_guarded_hybrid` 为 149/150。selective LLM judge 对 no-match 和歧义场景有明显帮助，但仍会保留少量 ambiguous，不能把它当成“强行返回答案”的阶段。
 
 结论：
 
@@ -188,7 +195,7 @@ guarded_hybrid: passed=242 failed=58  FN=18 unexpected=18 ambiguous=80 top1=242
 
 ## 8. 黄金测试集
 
-当前固定黄金测试集总量为 4950 条，位于：
+当前固定黄金测试集总量为 6550 条，位于：
 
 ```text
 tests/fixtures/golden_cases/
@@ -198,6 +205,8 @@ tests/fixtures/golden_cases/
 
 ```text
 write_policy.jsonl                  2000
+write_policy_cn_realistic.jsonl      800
+write_policy_en_realistic.jsonl      800
 retrieval_context.jsonl              400
 lifecycle.jsonl                      300
 task_recall.jsonl                    300
@@ -213,6 +222,10 @@ semantic_retrieval_public.jsonl      300
 ```
 
 `semantic_retrieval_public.jsonl` 参考 LongMemEval、LoCoMo 和 RealMemBench 的任务形态生成，但不复制外部数据原文。
+
+`write_policy_cn_realistic.jsonl` 是中文真实表达补充集，用来专门约束写入门禁中的低证据偏好、泛化不足偏好、日常喜欢但不应记忆、敏感内容、已验证排错、固定流程、环境事实、重复合并和冲突复核。每条样本带 `scenario`、`utterance_style` 和 `source_family`，当前覆盖 213 个场景标签、28 种表达风格和 6 个来源族。
+
+`write_policy_en_realistic.jsonl` 是英文真实表达补充集，覆盖同样的写入门禁边界，并额外约束英文表达中的长期指令、低证据偏好、拒写表达、一次性请求和已验证排错格式。每条样本同样带 `scenario`、`utterance_style` 和 `source_family`，当前覆盖 193 个场景标签、28 种表达风格和 6 个来源族。
 
 其中 `retrieval_context.jsonl` 是本地检索/上下文机制回归集，主要保证 scope、类型过滤、inactive 排除、排序、预算裁剪和 warning 不退化。它含有 `RET_*` / `CONTEXT_*` 人工标记，不应被当成真实语义召回基准。真实 query 改写、no-match 和远程 embedding/LLM 召回能力，应主要看 `semantic_retrieval_cn.jsonl`、`semantic_retrieval_v2.jsonl` 和 `semantic_retrieval_public.jsonl`。
 
@@ -246,7 +259,10 @@ python -m memory_system.cli --db data\memory.sqlite remote health --json
 $env:PYTHONPATH = "src"
 python -m memory_system.cli --db data\memory.sqlite remote evaluate-retrieval --fixture tests\fixtures\golden_cases\semantic_retrieval_public.jsonl --json
 python -m memory_system.cli --db data\memory.sqlite remote evaluate-retrieval --fixture tests\fixtures\golden_cases\semantic_retrieval_cn.jsonl --selective-llm-judge --json
+python -m memory_system.cli --db data\memory.sqlite remote evaluate-retrieval --fixture tests\fixtures\golden_cases\semantic_retrieval_public.jsonl --embedding-cache data\eval_embedding_cache.jsonl --report-path data\retrieval_report.json --case-concurrency 4 --judge-group-size 4 --judge-concurrency 2 --json
 ```
+
+大样本远程召回评估建议带 `--embedding-cache`、`--report-path` 和 `--case-concurrency`：cache 复用已完成向量，支持命令中断后的 embedding 层断点续跑；report path 固化完整 JSON 结果，便于对比模型、阈值和 fixture 版本；`case_concurrency` 控制 embedding 预取和 case 评估并发，真实远程建议先从 3 或 4 开始。case 阶段只做本地召回和 guard，不直接调用 DeepSeek；远程 judge 统一后置，用 `judge_concurrency` 控制同时几个 DeepSeek 请求，用 `judge_group_size` 控制每个请求里放几条 pending task；`judge_group_size=1` 是并发 single judge，`judge_group_size=2|4` 是小批量 judge。
 
 启动 API：
 

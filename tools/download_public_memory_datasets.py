@@ -31,6 +31,16 @@ HF_DATASETS = [
         "repo_id": "Nithish2410/benchmark-locomo",
         "description": "LoCoMo-style query/target benchmark rows for retrieval evaluation.",
     },
+    {
+        "name": "naturalconv_zh",
+        "repo_id": "xywang1/NaturalConv",
+        "description": "Chinese multi-turn topic-driven conversation corpus for natural expression reference.",
+    },
+    {
+        "name": "personal_dialog_zh",
+        "repo_id": "silver/personal_dialog",
+        "description": "Large Chinese multi-turn dialogue corpus with speaker profile traits for persona/preference reference.",
+    },
 ]
 
 GIT_REPOSITORIES: list[dict[str, Any]] = []

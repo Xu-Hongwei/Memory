@@ -22,6 +22,8 @@ ALLOWED_TEXT_DUPLICATE_CATEGORIES = {
 ALLOWED_MEMORY_DUPLICATE_CATEGORIES = {
     ("write_policy.jsonl", "ask_conflict"),
     ("write_policy.jsonl", "merge_duplicate"),
+    ("write_policy_en_realistic.jsonl", "en_ask_conflict"),
+    ("write_policy_en_realistic.jsonl", "en_merge_duplicate"),
 }
 TEMPLATE_NOISE_PATTERN = re.compile(
     r"第\s*\d+\s*个"

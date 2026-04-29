@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-04-29T10:23:09.793076+00:00",
+  "fixture": "tests\\fixtures\\golden_cases\\semantic_retrieval_public.jsonl",
+  "limit": 60,
+  "embedding_cache": "data\\benchmark_remote_retrieval_public_embeddings.jsonl",
+  "case_concurrency": 4,
+  "rows": [
+    {
+      "name": "single_parallel4",
+      "seconds": 15.0,
+      "target_mode": "selective_llm_guarded_hybrid",
+      "passed": 60,
+      "failed": 0,
+      "false_negative": 0,
+      "unexpected": 0,
+      "ambiguous": 0,
+      "pending_tasks": 6,
+      "request_mode": "single",
+      "judge_group_size": 1,
+      "judge_concurrency": 4,
+      "single_calls": 6,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0,
+      "cache_hits": 240,
+      "cache_misses": 69,
+      "cache_writes": 69,
+      "report_path": "data\\remote_retrieval_414_public\\single_parallel4.json"
+    }
+  ],
+  "failures": {
+    "single_parallel4": []
+  }
+}

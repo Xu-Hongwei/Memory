@@ -80,6 +80,79 @@ def test_propose_commit_and_search_user_preference(tmp_path):
     assert usage.recommended_action == "keep"
 
 
+def test_preview_uses_structured_metadata_candidates_atomically(tmp_path):
+    db_path = tmp_path / "memory.sqlite"
+    events = EventLog(db_path)
+    memories = MemoryStore(db_path)
+
+    event = events.record_event(
+        EventCreate(
+            event_type="user_message",
+            content=(
+                "Going forward, answer architecture questions in Chinese. "
+                "For this repo, the release workflow is ruff then pytest."
+            ),
+            source="conversation",
+            scope="repo:C:/workspace/demo",
+            metadata={
+                "memory_candidates": [
+                    {
+                        "content": "The user prefers Chinese answers for architecture questions.",
+                        "memory_type": "user_preference",
+                        "scope": "global",
+                        "subject": "architecture answer language",
+                        "claim": "Answer architecture questions in Chinese.",
+                        "evidence_type": "direct_user_statement",
+                        "time_validity": "persistent",
+                        "reuse_cases": ["future_responses"],
+                        "scores": {
+                            "long_term": 0.9,
+                            "evidence": 1.0,
+                            "reuse": 0.8,
+                            "risk": 0.1,
+                            "specificity": 0.8,
+                        },
+                        "confidence": "confirmed",
+                        "risk": "low",
+                    },
+                    {
+                        "content": "The repo release workflow is ruff then pytest.",
+                        "memory_type": "workflow",
+                        "subject": "release workflow",
+                        "claim": "Run ruff, then pytest before release.",
+                        "evidence_type": "direct_user_statement",
+                        "time_validity": "until_changed",
+                        "reuse_cases": ["release_validation"],
+                        "scores": {
+                            "long_term": 0.9,
+                            "evidence": 1.0,
+                            "reuse": 0.9,
+                            "risk": 0.1,
+                            "specificity": 0.8,
+                        },
+                        "confidence": "confirmed",
+                        "risk": "low",
+                    },
+                ]
+            },
+        )
+    )
+
+    candidates = memories.propose_memory(event)
+
+    assert [candidate.memory_type for candidate in candidates] == ["user_preference", "workflow"]
+    assert [candidate.claim for candidate in candidates] == [
+        "Answer architecture questions in Chinese.",
+        "Run ruff, then pytest before release.",
+    ]
+    assert candidates[0].scope == "global"
+    assert candidates[1].scope == "repo:C:/workspace/demo"
+    assert [memories.evaluate_candidate(candidate.id).decision for candidate in candidates] == [
+        "write",
+        "write",
+    ]
+
+
 def test_memory_usage_stats_recommends_review_and_stale(tmp_path):
     memories = MemoryStore(tmp_path / "memory.sqlite")
     reviewed = memories.add_memory(
@@ -461,6 +534,79 @@ def test_conflicting_candidate_requires_user_confirmation(tmp_path):
         memories.commit_memory(candidate.id, decision.id)
 
 
+def test_canonical_subject_conflict_requires_confirmation(tmp_path):
+    memories = MemoryStore(tmp_path / "memory.sqlite")
+
+    memories.add_memory(
+        MemoryItemCreate(
+            content="Previously confirmed startup command: old value says npm run dev.",
+            memory_type="project_fact",
+            scope="repo:C:/workspace/demo",
+            subject="startup command conflict fact",
+            source_event_ids=["evt_existing"],
+            confidence="confirmed",
+        )
+    )
+
+    candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content="已确认 startup command: 已确认 the startup command is pnpm dev.",
+            memory_type="project_fact",
+            scope="repo:C:/workspace/demo",
+            subject="startup command",
+            source_event_ids=["evt_new"],
+            reason="Remote candidate used a shorter subject.",
+            evidence_type="file_observation",
+            scores={"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+
+    decision = memories.evaluate_candidate(candidate.id)
+
+    assert decision.decision == "ask_user"
+    assert len(decision.matched_memory_ids) == 1
+
+
+def test_duplicate_candidate_merges_by_canonical_content_even_when_subject_drifts(tmp_path):
+    memories = MemoryStore(tmp_path / "memory.sqlite")
+    content = (
+        "已确认 README.md stores dev command: "
+        "已确认 package.json 的 dev command is memoryctl serve."
+    )
+    existing = memories.add_memory(
+        MemoryItemCreate(
+            content=content,
+            memory_type="project_fact",
+            scope="repo:C:/workspace/demo",
+            subject="README.md dev command duplicate",
+            source_event_ids=["evt_existing"],
+            confidence="confirmed",
+        )
+    )
+
+    candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content=content,
+            memory_type="project_fact",
+            scope="repo:C:/workspace/demo",
+            subject="README dev command",
+            source_event_ids=["evt_new"],
+            reason="Remote candidate used a shorter subject.",
+            evidence_type="file_observation",
+            scores={"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+
+    decision = memories.evaluate_candidate(candidate.id)
+
+    assert decision.decision == "merge"
+    assert decision.matched_memory_ids == [existing.id]
+
+
 def test_rejects_high_risk_candidate(tmp_path):
     memories = MemoryStore(tmp_path / "memory.sqlite")
     candidate = memories.create_candidate(
@@ -482,6 +628,97 @@ def test_rejects_high_risk_candidate(tmp_path):
     assert memories.get_candidate(candidate.id).status == "rejected"
     with pytest.raises(MemoryPolicyError):
         memories.commit_memory(candidate.id, decision.id)
+
+
+def test_rejects_raw_sensitive_candidate_even_when_risk_low(tmp_path):
+    memories = MemoryStore(tmp_path / "memory.sqlite")
+    candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content="Production token=abcdef1234567890 should be reused.",
+            memory_type="project_fact",
+            scope="global",
+            subject="raw token",
+            source_event_ids=["evt_secret"],
+            reason="Remote extraction returned an unsanitized candidate.",
+            claim="token=abcdef1234567890",
+            evidence_type="direct_user_statement",
+            time_validity="persistent",
+            scores={"long_term": 0.9, "evidence": 1.0, "reuse": 0.8},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+
+    decision = memories.evaluate_candidate(candidate.id)
+
+    assert decision.decision == "reject"
+    assert memories.get_candidate(candidate.id).status == "rejected"
+
+
+def test_tool_rule_can_mention_secret_terms_without_secret_value(tmp_path):
+    memories = MemoryStore(tmp_path / "memory.sqlite")
+    candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content="Do not store API keys or tokens in long-term memory.",
+            memory_type="tool_rule",
+            scope="global",
+            subject="secret handling",
+            source_event_ids=["evt_rule"],
+            reason="User stated a reusable safety rule.",
+            claim="Do not store API keys or tokens in long-term memory.",
+            evidence_type="direct_user_statement",
+            time_validity="until_changed",
+            scores={"long_term": 0.9, "evidence": 1.0, "reuse": 0.9},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+
+    decision = memories.evaluate_candidate(candidate.id)
+
+    assert decision.decision == "write"
+
+
+def test_candidate_time_validity_controls_policy(tmp_path):
+    memories = MemoryStore(tmp_path / "memory.sqlite")
+
+    session_candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content="Only remember the current screenshot layout for this session.",
+            memory_type="project_fact",
+            scope="global",
+            subject="temporary screenshot layout",
+            source_event_ids=["evt_session"],
+            reason="The candidate is explicitly temporary.",
+            evidence_type="direct_user_statement",
+            time_validity="session",
+            scores={"long_term": 0.9, "evidence": 1.0, "reuse": 0.8},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+    unknown_candidate = memories.create_candidate(
+        MemoryCandidateCreate(
+            content="The preferred deployment window may be late evening.",
+            memory_type="workflow",
+            scope="global",
+            subject="deployment window",
+            source_event_ids=["evt_unknown"],
+            reason="The candidate has evidence but no persistence window.",
+            evidence_type="direct_user_statement",
+            time_validity="unknown",
+            scores={"long_term": 0.9, "evidence": 1.0, "reuse": 0.8},
+            confidence="confirmed",
+            risk="low",
+        )
+    )
+
+    session_decision = memories.evaluate_candidate(session_candidate.id)
+    unknown_decision = memories.evaluate_candidate(unknown_candidate.id)
+
+    assert session_decision.decision == "reject"
+    assert unknown_decision.decision == "ask_user"
+    assert unknown_decision.required_action is not None
 
 
 def test_low_evidence_candidate_requires_review(tmp_path):

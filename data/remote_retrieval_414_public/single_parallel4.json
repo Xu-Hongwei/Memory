@@ -1,0 +1,5747 @@
+{
+  "provider": "cache",
+  "model": "tongyi-embedding-vision-flash-2026-03-06",
+  "summary": {
+    "case_count": 60,
+    "modes": [
+      "keyword",
+      "semantic",
+      "hybrid",
+      "guarded_hybrid",
+      "selective_llm_guarded_hybrid"
+    ],
+    "passed_by_mode": {
+      "keyword": 12,
+      "semantic": 54,
+      "hybrid": 54,
+      "guarded_hybrid": 54,
+      "selective_llm_guarded_hybrid": 60
+    },
+    "failed_by_mode": {
+      "keyword": 48,
+      "semantic": 6,
+      "hybrid": 6,
+      "guarded_hybrid": 6,
+      "selective_llm_guarded_hybrid": 0
+    },
+    "false_negative_by_mode": {
+      "keyword": 48,
+      "semantic": 6,
+      "hybrid": 6,
+      "guarded_hybrid": 6,
+      "selective_llm_guarded_hybrid": 0
+    },
+    "unexpected_by_mode": {
+      "keyword": 43,
+      "semantic": 6,
+      "hybrid": 6,
+      "guarded_hybrid": 0,
+      "selective_llm_guarded_hybrid": 0
+    },
+    "ambiguous_by_mode": {
+      "keyword": 0,
+      "semantic": 0,
+      "hybrid": 0,
+      "guarded_hybrid": 12,
+      "selective_llm_guarded_hybrid": 0
+    },
+    "top1_hit_by_mode": {
+      "keyword": 12,
+      "semantic": 54,
+      "hybrid": 54,
+      "guarded_hybrid": 54,
+      "selective_llm_guarded_hybrid": 60
+    },
+    "embedded_memory_count": 180,
+    "embedded_query_count": 60,
+    "judge_called_by_mode": {
+      "keyword": 0,
+      "semantic": 0,
+      "hybrid": 0,
+      "guarded_hybrid": 0,
+      "selective_llm_guarded_hybrid": 6
+    },
+    "judge_skipped_by_mode": {
+      "keyword": 0,
+      "semantic": 0,
+      "hybrid": 0,
+      "guarded_hybrid": 0,
+      "selective_llm_guarded_hybrid": 54
+    },
+    "judge_skip_reason_by_mode": {
+      "selective_llm_guarded_hybrid": {
+        "local_guard_confident": 54
+      }
+    }
+  },
+  "category_summary": {
+    "public_longmem_single_session_assistant": {
+      "category": "public_longmem_single_session_assistant",
+      "case_count": 20,
+      "passed_by_mode": {
+        "keyword": 4,
+        "semantic": 20,
+        "hybrid": 20,
+        "guarded_hybrid": 17,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "failed_by_mode": {
+        "keyword": 16,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 3,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "false_negative_by_mode": {
+        "keyword": 16,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 3,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "unexpected_by_mode": {
+        "keyword": 13,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "ambiguous_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 6,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "top1_hit_by_mode": {
+        "keyword": 4,
+        "semantic": 20,
+        "hybrid": 20,
+        "guarded_hybrid": 17,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "judge_called_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 3
+      },
+      "judge_skipped_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 17
+      },
+      "judge_skip_reason_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "local_guard_confident": 17
+        }
+      }
+    },
+    "public_longmem_single_session_preference": {
+      "category": "public_longmem_single_session_preference",
+      "case_count": 20,
+      "passed_by_mode": {
+        "keyword": 4,
+        "semantic": 14,
+        "hybrid": 14,
+        "guarded_hybrid": 17,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "failed_by_mode": {
+        "keyword": 16,
+        "semantic": 6,
+        "hybrid": 6,
+        "guarded_hybrid": 3,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "false_negative_by_mode": {
+        "keyword": 16,
+        "semantic": 6,
+        "hybrid": 6,
+        "guarded_hybrid": 3,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "unexpected_by_mode": {
+        "keyword": 14,
+        "semantic": 6,
+        "hybrid": 6,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "ambiguous_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 6,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "top1_hit_by_mode": {
+        "keyword": 4,
+        "semantic": 14,
+        "hybrid": 14,
+        "guarded_hybrid": 17,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "judge_called_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 3
+      },
+      "judge_skipped_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 17
+      },
+      "judge_skip_reason_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "local_guard_confident": 17
+        }
+      }
+    },
+    "public_longmem_single_session_user": {
+      "category": "public_longmem_single_session_user",
+      "case_count": 20,
+      "passed_by_mode": {
+        "keyword": 4,
+        "semantic": 20,
+        "hybrid": 20,
+        "guarded_hybrid": 20,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "failed_by_mode": {
+        "keyword": 16,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "false_negative_by_mode": {
+        "keyword": 16,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "unexpected_by_mode": {
+        "keyword": 16,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "ambiguous_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "top1_hit_by_mode": {
+        "keyword": 4,
+        "semantic": 20,
+        "hybrid": 20,
+        "guarded_hybrid": 20,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "judge_called_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 0
+      },
+      "judge_skipped_by_mode": {
+        "keyword": 0,
+        "semantic": 0,
+        "hybrid": 0,
+        "guarded_hybrid": 0,
+        "selective_llm_guarded_hybrid": 20
+      },
+      "judge_skip_reason_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "local_guard_confident": 20
+        }
+      }
+    }
+  },
+  "items": [
+    {
+      "case_name": "semantic_public_single_user_000",
+      "category": "public_longmem_single_session_user",
+      "query": "Where does Maya keep her passport?",
+      "expected_aliases": [
+        "single_user_000_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_000_target"
+        ],
+        "semantic": [
+          "single_user_000_target"
+        ],
+        "hybrid": [
+          "single_user_000_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_000_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_000_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_000_target"
+          ],
+          "selected_memory_ids": [
+            "mem_38eb1a72f0e84fe0b01a152ecac30628"
+          ],
+          "candidate_aliases": [
+            "single_user_000_target",
+            "single_user_000_distractor_b",
+            "single_user_000_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_38eb1a72f0e84fe0b01a152ecac30628",
+            "mem_7da5c8e7922942c99ee3b8c192370c38",
+            "mem_74eb6f98a3ed41c6b381f974986dd61f"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_001",
+      "category": "public_longmem_single_session_user",
+      "query": "What folder has Maya's passport?",
+      "expected_aliases": [
+        "single_user_001_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_001_target"
+        ],
+        "semantic": [
+          "single_user_001_target"
+        ],
+        "hybrid": [
+          "single_user_001_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_001_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_001_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_001_target"
+          ],
+          "selected_memory_ids": [
+            "mem_ac4a44cb2b1546c180a59b8f6de5aecd"
+          ],
+          "candidate_aliases": [
+            "single_user_001_target",
+            "single_user_001_distractor_b",
+            "single_user_001_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_ac4a44cb2b1546c180a59b8f6de5aecd",
+            "mem_efae2e53bb2c4a719423a6e2e7f8b825",
+            "mem_8f4e0da8fcfd4ec09948eb8819fb24cf"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_002",
+      "category": "public_longmem_single_session_user",
+      "query": "If Maya needs travel documents, where should she look?",
+      "expected_aliases": [
+        "single_user_002_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_002_target"
+        ],
+        "semantic": [
+          "single_user_002_target"
+        ],
+        "hybrid": [
+          "single_user_002_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_002_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_002_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_002_target"
+          ],
+          "selected_memory_ids": [
+            "mem_41a2c672c76e429da3a5fccac1ac3b89"
+          ],
+          "candidate_aliases": [
+            "single_user_002_target",
+            "single_user_002_distractor_a",
+            "single_user_002_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_41a2c672c76e429da3a5fccac1ac3b89",
+            "mem_981c824d1e944f6fb26b81a558894488",
+            "mem_18d65ac3d137475eaeae044b91940e15"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_003",
+      "category": "public_longmem_single_session_user",
+      "query": "Which place did the user mention for Maya's passport?",
+      "expected_aliases": [
+        "single_user_003_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_003_distractor_b"
+        ],
+        "semantic": [
+          "single_user_003_target"
+        ],
+        "hybrid": [
+          "single_user_003_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_003_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_003_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_003_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_003_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_003_target"
+          ],
+          "selected_memory_ids": [
+            "mem_77728625edad4949a4326b3496456314"
+          ],
+          "candidate_aliases": [
+            "single_user_003_target",
+            "single_user_003_distractor_a",
+            "single_user_003_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_77728625edad4949a4326b3496456314",
+            "mem_26e03e222d124d3ab5d74607e964f740",
+            "mem_93b3c0e676ee4cf59d380ddedfdf0b02"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_004",
+      "category": "public_longmem_single_session_user",
+      "query": "What did the user say about the passport location?",
+      "expected_aliases": [
+        "single_user_004_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_004_distractor_b"
+        ],
+        "semantic": [
+          "single_user_004_target"
+        ],
+        "hybrid": [
+          "single_user_004_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_004_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_004_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_004_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_004_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_004_target"
+          ],
+          "selected_memory_ids": [
+            "mem_96393be808374e69adec9c452bcbeebb"
+          ],
+          "candidate_aliases": [
+            "single_user_004_target",
+            "single_user_004_distractor_b",
+            "single_user_004_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_96393be808374e69adec9c452bcbeebb",
+            "mem_3861d0cb6e4441bf9910fbaad61c793e",
+            "mem_aad952c695af4bf9b9a1cf5d37c7796e"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_005",
+      "category": "public_longmem_single_session_user",
+      "query": "Where is the travel document stored?",
+      "expected_aliases": [
+        "single_user_005_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_005_distractor_b"
+        ],
+        "semantic": [
+          "single_user_005_target"
+        ],
+        "hybrid": [
+          "single_user_005_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_005_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_005_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_005_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_005_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_005_target"
+          ],
+          "selected_memory_ids": [
+            "mem_ec8ff809b1ae4823945f34ddc0fb47ae"
+          ],
+          "candidate_aliases": [
+            "single_user_005_target",
+            "single_user_005_distractor_a",
+            "single_user_005_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_ec8ff809b1ae4823945f34ddc0fb47ae",
+            "mem_d3f35f8cb5204aaeb662949098d26824",
+            "mem_5782189d6cc7444ca43ad6de0fa6d48b"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_006",
+      "category": "public_longmem_single_session_user",
+      "query": "What should be checked near the printer?",
+      "expected_aliases": [
+        "single_user_006_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_006_distractor_b"
+        ],
+        "semantic": [
+          "single_user_006_target"
+        ],
+        "hybrid": [
+          "single_user_006_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_006_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_006_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_006_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_006_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_006_target"
+          ],
+          "selected_memory_ids": [
+            "mem_dcaeb76c233640caad4510e1cb8899e1"
+          ],
+          "candidate_aliases": [
+            "single_user_006_target",
+            "single_user_006_distractor_a",
+            "single_user_006_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_dcaeb76c233640caad4510e1cb8899e1",
+            "mem_ebff89a0a4e54ca0af332b42d86c2077",
+            "mem_e994d4c266644f17bee49569f6b545b6"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_007",
+      "category": "public_longmem_single_session_user",
+      "query": "Which color folder matters for Maya?",
+      "expected_aliases": [
+        "single_user_007_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_007_distractor_a"
+        ],
+        "semantic": [
+          "single_user_007_target"
+        ],
+        "hybrid": [
+          "single_user_007_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_007_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_007_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_007_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_007_distractor_a"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_007_target"
+          ],
+          "selected_memory_ids": [
+            "mem_408069c89f0f4308808a8190a13620f6"
+          ],
+          "candidate_aliases": [
+            "single_user_007_target",
+            "single_user_007_distractor_a",
+            "single_user_007_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_408069c89f0f4308808a8190a13620f6",
+            "mem_02087dc45be34b59ad77ee949a71e196",
+            "mem_472a5050651f4b87b5d03aa455976b49"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_008",
+      "category": "public_longmem_single_session_user",
+      "query": "Where would Maya find the passport quickly?",
+      "expected_aliases": [
+        "single_user_008_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_008_distractor_b"
+        ],
+        "semantic": [
+          "single_user_008_target"
+        ],
+        "hybrid": [
+          "single_user_008_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_008_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_008_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_008_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_008_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_008_target"
+          ],
+          "selected_memory_ids": [
+            "mem_04d8dc6210da4371999326184c14c742"
+          ],
+          "candidate_aliases": [
+            "single_user_008_target",
+            "single_user_008_distractor_b",
+            "single_user_008_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_04d8dc6210da4371999326184c14c742",
+            "mem_877d75c6132f44dbbd26c8bb64687b16",
+            "mem_905865b038dc4f98b61c27749d1cbea3"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_009",
+      "category": "public_longmem_single_session_user",
+      "query": "What location detail did the user give for Maya's documents?",
+      "expected_aliases": [
+        "single_user_009_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_009_distractor_b"
+        ],
+        "semantic": [
+          "single_user_009_target"
+        ],
+        "hybrid": [
+          "single_user_009_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_009_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_009_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_009_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_009_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_009_target"
+          ],
+          "selected_memory_ids": [
+            "mem_421828785b454523a261a0e09e1e26c0"
+          ],
+          "candidate_aliases": [
+            "single_user_009_target",
+            "single_user_009_distractor_a",
+            "single_user_009_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_421828785b454523a261a0e09e1e26c0",
+            "mem_f36cc9a8d4624f17a9d2b25d2c055757",
+            "mem_d5078e03e4204d3b92e141b6d2d675a2"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_010",
+      "category": "public_longmem_single_session_user",
+      "query": "Maya is packing; where is the passport?",
+      "expected_aliases": [
+        "single_user_010_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_010_distractor_b"
+        ],
+        "semantic": [
+          "single_user_010_target"
+        ],
+        "hybrid": [
+          "single_user_010_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_010_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_010_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_010_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_010_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_010_target"
+          ],
+          "selected_memory_ids": [
+            "mem_86fb3bf346a34ba08c9fa4cdd59fe4a4"
+          ],
+          "candidate_aliases": [
+            "single_user_010_target",
+            "single_user_010_distractor_a",
+            "single_user_010_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_86fb3bf346a34ba08c9fa4cdd59fe4a4",
+            "mem_98dda260dbe749a899e1cb38288f18e6",
+            "mem_e1df6518b43c431189121935dac2f6d5"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_011",
+      "category": "public_longmem_single_session_user",
+      "query": "Which folder is tied to Maya's passport?",
+      "expected_aliases": [
+        "single_user_011_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_011_distractor_b"
+        ],
+        "semantic": [
+          "single_user_011_target"
+        ],
+        "hybrid": [
+          "single_user_011_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_011_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_011_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_011_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_011_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_011_target"
+          ],
+          "selected_memory_ids": [
+            "mem_5df50bf2fb394a0b88b78b1bbfd2613e"
+          ],
+          "candidate_aliases": [
+            "single_user_011_target",
+            "single_user_011_distractor_b",
+            "single_user_011_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_5df50bf2fb394a0b88b78b1bbfd2613e",
+            "mem_64e1b179e1a94482868d4f38d1cd382e",
+            "mem_c1609a5a93414975ad73ff0ca5b05622"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_012",
+      "category": "public_longmem_single_session_user",
+      "query": "What did the conversation establish about the passport?",
+      "expected_aliases": [
+        "single_user_012_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_012_distractor_b"
+        ],
+        "semantic": [
+          "single_user_012_target"
+        ],
+        "hybrid": [
+          "single_user_012_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_012_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_012_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_012_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_012_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_012_target"
+          ],
+          "selected_memory_ids": [
+            "mem_5331aa69eb834e989e9e7466f8b5a0f5"
+          ],
+          "candidate_aliases": [
+            "single_user_012_target",
+            "single_user_012_distractor_b",
+            "single_user_012_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_5331aa69eb834e989e9e7466f8b5a0f5",
+            "mem_63354cca22fc4bf0b317012f447243d0",
+            "mem_f844d104761f496b8f30b29955c408a0"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_013",
+      "category": "public_longmem_single_session_user",
+      "query": "Where should I tell Maya to look for her passport?",
+      "expected_aliases": [
+        "single_user_013_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_013_distractor_b"
+        ],
+        "semantic": [
+          "single_user_013_target"
+        ],
+        "hybrid": [
+          "single_user_013_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_013_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_013_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_013_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_013_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_013_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1dc6c0b1e5c74d9cb94841e0efda2037"
+          ],
+          "candidate_aliases": [
+            "single_user_013_target",
+            "single_user_013_distractor_b",
+            "single_user_013_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_1dc6c0b1e5c74d9cb94841e0efda2037",
+            "mem_6b5a5ec94e524f06829271536ad33c60",
+            "mem_2fb461c3c41e4b58ae5e37e59551b393"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_014",
+      "category": "public_longmem_single_session_user",
+      "query": "What physical location is associated with the passport?",
+      "expected_aliases": [
+        "single_user_014_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_014_distractor_b"
+        ],
+        "semantic": [
+          "single_user_014_target"
+        ],
+        "hybrid": [
+          "single_user_014_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_014_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_014_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_014_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_014_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_014_target"
+          ],
+          "selected_memory_ids": [
+            "mem_ccc0780961604b0b87e83f362de096af"
+          ],
+          "candidate_aliases": [
+            "single_user_014_target",
+            "single_user_014_distractor_a",
+            "single_user_014_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_ccc0780961604b0b87e83f362de096af",
+            "mem_11115caa2497476cb1154ec282fcf2d3",
+            "mem_1714e9fc35c94e04ae7e0fd2a4b46114"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_015",
+      "category": "public_longmem_single_session_user",
+      "query": "Which item is in the blue folder?",
+      "expected_aliases": [
+        "single_user_015_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_015_distractor_b"
+        ],
+        "semantic": [
+          "single_user_015_target"
+        ],
+        "hybrid": [
+          "single_user_015_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_015_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_015_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_015_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_015_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_015_target"
+          ],
+          "selected_memory_ids": [
+            "mem_96185214cfd248328f62733716ac0e28"
+          ],
+          "candidate_aliases": [
+            "single_user_015_target",
+            "single_user_015_distractor_a",
+            "single_user_015_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_96185214cfd248328f62733716ac0e28",
+            "mem_e26150be26374ab8bb52a863ac5348ea",
+            "mem_7d511ce218b74d9ab276dfe99795e6f9"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_016",
+      "category": "public_longmem_single_session_user",
+      "query": "Where did the user say the passport was kept?",
+      "expected_aliases": [
+        "single_user_016_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_016_distractor_b"
+        ],
+        "semantic": [
+          "single_user_016_target"
+        ],
+        "hybrid": [
+          "single_user_016_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_016_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_016_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_016_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_016_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_016_target"
+          ],
+          "selected_memory_ids": [
+            "mem_ec8c4460a925417b81a67dcf258bf8ab"
+          ],
+          "candidate_aliases": [
+            "single_user_016_target",
+            "single_user_016_distractor_b",
+            "single_user_016_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_ec8c4460a925417b81a67dcf258bf8ab",
+            "mem_a0db879bcd81476d870201379bbbceeb",
+            "mem_a1e6f505b8494bb2bf4509570162337b"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_017",
+      "category": "public_longmem_single_session_user",
+      "query": "What storage detail matters for Maya's travel prep?",
+      "expected_aliases": [
+        "single_user_017_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_017_distractor_a"
+        ],
+        "semantic": [
+          "single_user_017_target"
+        ],
+        "hybrid": [
+          "single_user_017_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_017_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_017_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_017_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_017_distractor_a"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_017_target"
+          ],
+          "selected_memory_ids": [
+            "mem_400d4811589d463daa60095cb1801161"
+          ],
+          "candidate_aliases": [
+            "single_user_017_target",
+            "single_user_017_distractor_a",
+            "single_user_017_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_400d4811589d463daa60095cb1801161",
+            "mem_073611fcf0554e5b95622d3e57cc90ca",
+            "mem_75f927703acb4c02bc9038f6961588e7"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_018",
+      "category": "public_longmem_single_session_user",
+      "query": "If asked about Maya's passport, what should be recalled?",
+      "expected_aliases": [
+        "single_user_018_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_018_target"
+        ],
+        "semantic": [
+          "single_user_018_target"
+        ],
+        "hybrid": [
+          "single_user_018_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_018_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_018_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_018_target"
+          ],
+          "selected_memory_ids": [
+            "mem_05f16572607e4d9a9c2e68d98d965e2d"
+          ],
+          "candidate_aliases": [
+            "single_user_018_target",
+            "single_user_018_distractor_b",
+            "single_user_018_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_05f16572607e4d9a9c2e68d98d965e2d",
+            "mem_dcb0e89c305a486f99b7a856f8a647b5",
+            "mem_3cb15184c140424fbc4f39d4a5a15b69"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_user_019",
+      "category": "public_longmem_single_session_user",
+      "query": "Which document location came from the user?",
+      "expected_aliases": [
+        "single_user_019_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_user_019_distractor_b"
+        ],
+        "semantic": [
+          "single_user_019_target"
+        ],
+        "hybrid": [
+          "single_user_019_target"
+        ],
+        "guarded_hybrid": [
+          "single_user_019_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_user_019_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_user_019_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_user_019_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_user_019_target"
+          ],
+          "selected_memory_ids": [
+            "mem_d34c345a20d649a28cb0a1d39c694291"
+          ],
+          "candidate_aliases": [
+            "single_user_019_target",
+            "single_user_019_distractor_b",
+            "single_user_019_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_d34c345a20d649a28cb0a1d39c694291",
+            "mem_5198b1f47a9f487b9e276efe321cf8c7",
+            "mem_92f99d03068f49e8b8c78dd024096427"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_000",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What fix was suggested for a stale local page?",
+      "expected_aliases": [
+        "single_assistant_000_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_000_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_000_target"
+        ],
+        "hybrid": [
+          "single_assistant_000_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_000_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_000_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_000_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_000_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_000_target"
+          ],
+          "selected_memory_ids": [
+            "mem_d8351694e36e46aebf34b52299595b8e"
+          ],
+          "candidate_aliases": [
+            "single_assistant_000_target",
+            "single_assistant_000_distractor_b",
+            "single_assistant_000_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_d8351694e36e46aebf34b52299595b8e",
+            "mem_6a940e5990e047258d1a387ecbdbc93c",
+            "mem_15d1016bbf9045918532c6ca74d8537e"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_001",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What should be checked when the endpoint still looks old?",
+      "expected_aliases": [
+        "single_assistant_001_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_001_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_001_target"
+        ],
+        "hybrid": [
+          "single_assistant_001_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_001_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_001_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_001_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_001_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_001_target"
+          ],
+          "selected_memory_ids": [
+            "mem_437eb74bb2904cd99642c7d201d5d75e"
+          ],
+          "candidate_aliases": [
+            "single_assistant_001_target",
+            "single_assistant_001_distractor_b",
+            "single_assistant_001_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_437eb74bb2904cd99642c7d201d5d75e",
+            "mem_4ad07619a011413ab0c4f3dc7dc27a30",
+            "mem_522bfba2979345109a1ba6a1cdfbc140"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_002",
+      "category": "public_longmem_single_session_assistant",
+      "query": "Which troubleshooting step did the assistant recommend for stale behavior?",
+      "expected_aliases": [
+        "single_assistant_002_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_002_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_002_target"
+        ],
+        "hybrid": [
+          "single_assistant_002_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_002_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_002_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_002_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_002_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_002_target"
+          ],
+          "selected_memory_ids": [
+            "mem_b5c087b02973473e9618ef86d6f19e57"
+          ],
+          "candidate_aliases": [
+            "single_assistant_002_target",
+            "single_assistant_002_distractor_b",
+            "single_assistant_002_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_b5c087b02973473e9618ef86d6f19e57",
+            "mem_51d755a75b29410ba00edc260de02f72",
+            "mem_78ac6964361f42ecbb9df5903c94ce13"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_003",
+      "category": "public_longmem_single_session_assistant",
+      "query": "How did the assistant say to verify the running server?",
+      "expected_aliases": [
+        "single_assistant_003_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_003_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_003_target"
+        ],
+        "hybrid": [
+          "single_assistant_003_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_003_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_003_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_003_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_003_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_003_target"
+          ],
+          "selected_memory_ids": [
+            "mem_b120e53343a84c07a7b217ff3efa234a"
+          ],
+          "candidate_aliases": [
+            "single_assistant_003_target",
+            "single_assistant_003_distractor_b",
+            "single_assistant_003_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_b120e53343a84c07a7b217ff3efa234a",
+            "mem_ac3faadb6d814bfd9532ff76a7066653",
+            "mem_32181ed669f844e3865d84c898542765"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_004",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What advice was given for a page that ignores the latest patch?",
+      "expected_aliases": [
+        "single_assistant_004_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_004_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_004_target"
+        ],
+        "hybrid": [
+          "single_assistant_004_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_004_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_004_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_004_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_004_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_004_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1464f29a86ed4c1fa1a5678153c85362"
+          ],
+          "candidate_aliases": [
+            "single_assistant_004_target",
+            "single_assistant_004_distractor_b",
+            "single_assistant_004_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_1464f29a86ed4c1fa1a5678153c85362",
+            "mem_bdd7c9c5de124ad78505d402ce4b50e8",
+            "mem_54ca464db65a495fbdf431faf79dac1a"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_005",
+      "category": "public_longmem_single_session_assistant",
+      "query": "Which process detail matters when localhost looks outdated?",
+      "expected_aliases": [
+        "single_assistant_005_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_005_target"
+        ],
+        "semantic": [
+          "single_assistant_005_target"
+        ],
+        "hybrid": [
+          "single_assistant_005_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_005_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_005_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_005_target"
+          ],
+          "selected_memory_ids": [
+            "mem_c16b41cbc4364e0ba0edac71fe265879"
+          ],
+          "candidate_aliases": [
+            "single_assistant_005_target",
+            "single_assistant_005_distractor_b",
+            "single_assistant_005_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_c16b41cbc4364e0ba0edac71fe265879",
+            "mem_582d5603fb8e48d393a05562261f9b05",
+            "mem_16b9b416c7094fec9373967af6cd70a5"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_006",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What should I inspect if a restart did not change the page?",
+      "expected_aliases": [
+        "single_assistant_006_target"
+      ],
+      "results_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "single_assistant_006_target"
+        ],
+        "hybrid": [
+          "single_assistant_006_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_006_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_006_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_006_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_006_target"
+          ],
+          "selected_memory_ids": [
+            "mem_873ef220b3b5409f945d7dd4ef4482b0"
+          ],
+          "candidate_aliases": [
+            "single_assistant_006_target",
+            "single_assistant_006_distractor_b",
+            "single_assistant_006_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_873ef220b3b5409f945d7dd4ef4482b0",
+            "mem_8d3dddc15e9c49208a14fe0e0b40e597",
+            "mem_b4dbc0e9e8c04be58d2a282495e8efdd"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_007",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What was the assistant's recommendation for stale service output?",
+      "expected_aliases": [
+        "single_assistant_007_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_007_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_007_target"
+        ],
+        "hybrid": [
+          "single_assistant_007_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_007_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_007_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_007_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_007_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_007_target"
+          ],
+          "selected_memory_ids": [
+            "mem_0b659f37d32345ad9ff15175badfc2fd"
+          ],
+          "candidate_aliases": [
+            "single_assistant_007_target",
+            "single_assistant_007_distractor_b",
+            "single_assistant_007_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_0b659f37d32345ad9ff15175badfc2fd",
+            "mem_df78a1c779114274878f1b0d71a924a6",
+            "mem_f841a434cabb466db92908b1b8ccec7c"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_008",
+      "category": "public_longmem_single_session_assistant",
+      "query": "How do I confirm the app is serving the new code?",
+      "expected_aliases": [
+        "single_assistant_008_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_008_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_008_target"
+        ],
+        "hybrid": [
+          "single_assistant_008_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_008_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_008_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_008_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_008_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_008_target"
+          ],
+          "selected_memory_ids": [
+            "mem_38c3a4fa5b664d94877588984f99e4b5"
+          ],
+          "candidate_aliases": [
+            "single_assistant_008_target",
+            "single_assistant_008_distractor_b",
+            "single_assistant_008_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_38c3a4fa5b664d94877588984f99e4b5",
+            "mem_823aaa694d464defa28cb4dbae3cd288",
+            "mem_27971deb479d48a3aa2a75e6d548e5d3"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_009",
+      "category": "public_longmem_single_session_assistant",
+      "query": "Which runtime check was proposed for old UI behavior?",
+      "expected_aliases": [
+        "single_assistant_009_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_009_target"
+        ],
+        "semantic": [
+          "single_assistant_009_target"
+        ],
+        "hybrid": [
+          "single_assistant_009_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_009_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_009_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_009_distractor_b",
+          "single_assistant_009_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "deepseek-v4-flash",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "The candidate directly describes a runtime check (checking active port and process) proposed for old UI behavior.",
+          "risk": "low",
+          "selected_aliases": [
+            "single_assistant_009_target"
+          ],
+          "selected_memory_ids": [
+            "mem_8f334ab4f26a49d7988d2c1b2ee1d82d"
+          ],
+          "candidate_aliases": [
+            "single_assistant_009_distractor_b",
+            "single_assistant_009_target",
+            "single_assistant_009_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_7d41c1a781554b4cb196c775fc6c3c03",
+            "mem_8f334ab4f26a49d7988d2c1b2ee1d82d",
+            "mem_4f7c663604574d8da5b66f2fc8850b7a"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_7d41c1a781554b4cb196c775fc6c3c03",
+              "mem_8f334ab4f26a49d7988d2c1b2ee1d82d",
+              "mem_4f7c663604574d8da5b66f2fc8850b7a"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_010",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What port/process step should be remembered?",
+      "expected_aliases": [
+        "single_assistant_010_target"
+      ],
+      "results_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "single_assistant_010_target"
+        ],
+        "hybrid": [
+          "single_assistant_010_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_010_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_010_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_010_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_010_target",
+          "single_assistant_010_distractor_b"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "memory_system.remote_recall_judge.v1",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "The memory directly answers the query by recommending to check the active port and process as a step to remember.",
+          "risk": "low",
+          "selected_aliases": [
+            "single_assistant_010_target"
+          ],
+          "selected_memory_ids": [
+            "mem_2bd0e1c1d6cc491c977c2f664a0b03b4"
+          ],
+          "candidate_aliases": [
+            "single_assistant_010_target",
+            "single_assistant_010_distractor_b",
+            "single_assistant_010_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_2bd0e1c1d6cc491c977c2f664a0b03b4",
+            "mem_d9831f1238d54333be791cd80f9b18d8",
+            "mem_74a32c1a5eb64f59871af0254ffc5c7e"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_2bd0e1c1d6cc491c977c2f664a0b03b4",
+              "mem_d9831f1238d54333be791cd80f9b18d8",
+              "mem_74a32c1a5eb64f59871af0254ffc5c7e"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_011",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What did the assistant say to do before trusting the running page?",
+      "expected_aliases": [
+        "single_assistant_011_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_011_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_011_target"
+        ],
+        "hybrid": [
+          "single_assistant_011_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_011_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_011_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_011_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_011_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_011_target"
+          ],
+          "selected_memory_ids": [
+            "mem_96a51e10dc2f460bbf3a9038d291f99f"
+          ],
+          "candidate_aliases": [
+            "single_assistant_011_target",
+            "single_assistant_011_distractor_b",
+            "single_assistant_011_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_96a51e10dc2f460bbf3a9038d291f99f",
+            "mem_8827aae506b24fde83c85c6a506e0049",
+            "mem_052f76a2571e48f68979c567022341f9"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_012",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What is the remembered fix for stale localhost behavior?",
+      "expected_aliases": [
+        "single_assistant_012_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_012_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_012_target"
+        ],
+        "hybrid": [
+          "single_assistant_012_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_012_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_012_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_012_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_012_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_012_target"
+          ],
+          "selected_memory_ids": [
+            "mem_cdf659d526c6447796f38646e55a3130"
+          ],
+          "candidate_aliases": [
+            "single_assistant_012_target",
+            "single_assistant_012_distractor_b",
+            "single_assistant_012_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_cdf659d526c6447796f38646e55a3130",
+            "mem_ef22e74d50504f1b8455cad392bddc9f",
+            "mem_110f35fa54014c4bbaeda7ff3dd0f521"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_013",
+      "category": "public_longmem_single_session_assistant",
+      "query": "Which verification did the assistant suggest for active service confusion?",
+      "expected_aliases": [
+        "single_assistant_013_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_013_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_013_target"
+        ],
+        "hybrid": [
+          "single_assistant_013_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_013_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_013_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_013_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_013_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_013_target"
+          ],
+          "selected_memory_ids": [
+            "mem_e021e531f35046fda70a3120d593d3b5"
+          ],
+          "candidate_aliases": [
+            "single_assistant_013_target",
+            "single_assistant_013_distractor_b",
+            "single_assistant_013_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_e021e531f35046fda70a3120d593d3b5",
+            "mem_7488ecd32566414bad5e21495c531b2b",
+            "mem_9370e129c50e4b78908863912c727cb9"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_014",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What local-server advice came from the assistant?",
+      "expected_aliases": [
+        "single_assistant_014_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_014_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_014_target"
+        ],
+        "hybrid": [
+          "single_assistant_014_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_014_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_014_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_014_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_014_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_014_target"
+          ],
+          "selected_memory_ids": [
+            "mem_4c3567af66d4426294bb3f19e75165d3"
+          ],
+          "candidate_aliases": [
+            "single_assistant_014_target",
+            "single_assistant_014_distractor_b",
+            "single_assistant_014_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_4c3567af66d4426294bb3f19e75165d3",
+            "mem_8290ce34415548c880a0790ba11b7f70",
+            "mem_bc5060a4dd9642d0a0190996b04397b1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_015",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What should be done when live behavior differs from the patch?",
+      "expected_aliases": [
+        "single_assistant_015_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_015_target"
+        ],
+        "semantic": [
+          "single_assistant_015_target"
+        ],
+        "hybrid": [
+          "single_assistant_015_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_015_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_015_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "single_assistant_015_distractor_b",
+          "single_assistant_015_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "remote_recall_judge",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "Candidates that provide guidance on handling discrepancies between expected and live behavior are accepted for troubleshooting advice.",
+          "risk": "low",
+          "selected_aliases": [
+            "single_assistant_015_target"
+          ],
+          "selected_memory_ids": [
+            "mem_74b7f751a3a0465fbc53860f49de629c"
+          ],
+          "candidate_aliases": [
+            "single_assistant_015_distractor_b",
+            "single_assistant_015_target",
+            "single_assistant_015_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_7bdf3b27bc714e088c54a8630a07d00c",
+            "mem_74b7f751a3a0465fbc53860f49de629c",
+            "mem_1ff0d236756f4f2f80e6a9fd91cfdbc6"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_7bdf3b27bc714e088c54a8630a07d00c",
+              "mem_74b7f751a3a0465fbc53860f49de629c",
+              "mem_1ff0d236756f4f2f80e6a9fd91cfdbc6"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_016",
+      "category": "public_longmem_single_session_assistant",
+      "query": "Which check helps avoid testing the wrong server?",
+      "expected_aliases": [
+        "single_assistant_016_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_016_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_016_target"
+        ],
+        "hybrid": [
+          "single_assistant_016_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_016_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_016_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_016_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_016_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_016_target"
+          ],
+          "selected_memory_ids": [
+            "mem_dad14d72431c47b2941b741ddbb657d4"
+          ],
+          "candidate_aliases": [
+            "single_assistant_016_target",
+            "single_assistant_016_distractor_b",
+            "single_assistant_016_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_dad14d72431c47b2941b741ddbb657d4",
+            "mem_01ccad3ab85f45728660782a00f3e480",
+            "mem_4b625edf7ba940579b8ae0ef012eea80"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_017",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What did the assistant recommend for old code still appearing?",
+      "expected_aliases": [
+        "single_assistant_017_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_017_distractor_b"
+        ],
+        "semantic": [
+          "single_assistant_017_target"
+        ],
+        "hybrid": [
+          "single_assistant_017_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_017_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_017_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_017_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "single_assistant_017_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_017_target"
+          ],
+          "selected_memory_ids": [
+            "mem_e638d5e227f34b9cbd8247ea5f34d97c"
+          ],
+          "candidate_aliases": [
+            "single_assistant_017_target",
+            "single_assistant_017_distractor_b",
+            "single_assistant_017_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_e638d5e227f34b9cbd8247ea5f34d97c",
+            "mem_b676fab8cbe042568e9fa9cc08a8f885",
+            "mem_4823d911ebd44f1dbcdb4f1adada6659"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_018",
+      "category": "public_longmem_single_session_assistant",
+      "query": "How should a stale dev service be investigated?",
+      "expected_aliases": [
+        "single_assistant_018_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "single_assistant_018_target"
+        ],
+        "semantic": [
+          "single_assistant_018_target"
+        ],
+        "hybrid": [
+          "single_assistant_018_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_018_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_018_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_018_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1c2e0690929547be8453502ecbd9b542"
+          ],
+          "candidate_aliases": [
+            "single_assistant_018_target",
+            "single_assistant_018_distractor_b",
+            "single_assistant_018_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_1c2e0690929547be8453502ecbd9b542",
+            "mem_31863baa14ce459e83a06b11d17382b3",
+            "mem_9febaa7ae46047e6b8dc8c06966993bd"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_single_assistant_019",
+      "category": "public_longmem_single_session_assistant",
+      "query": "What troubleshooting memory applies to an unchanged endpoint?",
+      "expected_aliases": [
+        "single_assistant_019_target"
+      ],
+      "results_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "single_assistant_019_target"
+        ],
+        "hybrid": [
+          "single_assistant_019_target"
+        ],
+        "guarded_hybrid": [
+          "single_assistant_019_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "single_assistant_019_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "single_assistant_019_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "single_assistant_019_target"
+          ],
+          "selected_memory_ids": [
+            "mem_7d08fb846ec44e85ac3172173768ec57"
+          ],
+          "candidate_aliases": [
+            "single_assistant_019_target",
+            "single_assistant_019_distractor_b",
+            "single_assistant_019_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_7d08fb846ec44e85ac3172173768ec57",
+            "mem_a3863d716e7d41a2b4978cc66a797122",
+            "mem_471696748b4a4a86b74464194e1dbea1"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_000",
+      "category": "public_longmem_single_session_preference",
+      "query": "How should a new concept be explained to the user?",
+      "expected_aliases": [
+        "preference_000_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_000_distractor_b"
+        ],
+        "semantic": [
+          "preference_000_distractor_b"
+        ],
+        "hybrid": [
+          "preference_000_distractor_b"
+        ],
+        "guarded_hybrid": [
+          "preference_000_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_000_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_000_target"
+        ],
+        "semantic": [
+          "preference_000_target"
+        ],
+        "hybrid": [
+          "preference_000_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_000_distractor_b"
+        ],
+        "semantic": [
+          "preference_000_distractor_b"
+        ],
+        "hybrid": [
+          "preference_000_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_000_target"
+          ],
+          "selected_memory_ids": [
+            "mem_3da8e22f239b4b00b6ea28277cf2b73f"
+          ],
+          "candidate_aliases": [
+            "preference_000_target",
+            "preference_000_distractor_b",
+            "preference_000_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_3da8e22f239b4b00b6ea28277cf2b73f",
+            "mem_aee251a0ab6642b2aeaa6ec26fc1cea4",
+            "mem_9b80043501a44e558d584dbe128e69e3"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_001",
+      "category": "public_longmem_single_session_preference",
+      "query": "Should the explanation begin with rules or an example?",
+      "expected_aliases": [
+        "preference_001_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_001_distractor_b"
+        ],
+        "semantic": [
+          "preference_001_target"
+        ],
+        "hybrid": [
+          "preference_001_target"
+        ],
+        "guarded_hybrid": [
+          "preference_001_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_001_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_001_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_001_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_001_target"
+          ],
+          "selected_memory_ids": [
+            "mem_a6090d75606a4e7091c2eeffc2abc301"
+          ],
+          "candidate_aliases": [
+            "preference_001_target",
+            "preference_001_distractor_b",
+            "preference_001_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_a6090d75606a4e7091c2eeffc2abc301",
+            "mem_e08d0baa38b749e284c73362a290444e",
+            "mem_ad81f81e61d74a418d767493dc24c825"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_002",
+      "category": "public_longmem_single_session_preference",
+      "query": "What teaching style does the user prefer?",
+      "expected_aliases": [
+        "preference_002_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_002_distractor_b"
+        ],
+        "semantic": [
+          "preference_002_target"
+        ],
+        "hybrid": [
+          "preference_002_target"
+        ],
+        "guarded_hybrid": [
+          "preference_002_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_002_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_002_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_002_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_002_target"
+          ],
+          "selected_memory_ids": [
+            "mem_8d5bc86881164be9ad15542994b2ff66"
+          ],
+          "candidate_aliases": [
+            "preference_002_target",
+            "preference_002_distractor_b",
+            "preference_002_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_8d5bc86881164be9ad15542994b2ff66",
+            "mem_6b3bcb4ed71a49d69e319d5b04c86c24",
+            "mem_16783a97c4bd4cc284aec097753f56eb"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_003",
+      "category": "public_longmem_single_session_preference",
+      "query": "What should come before abstract guidance?",
+      "expected_aliases": [
+        "preference_003_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_003_target"
+        ],
+        "semantic": [
+          "preference_003_target"
+        ],
+        "hybrid": [
+          "preference_003_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "preference_003_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "preference_003_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "preference_003_target",
+          "preference_003_distractor_b"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "deepseek-v4-flash",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "The user preference directly states that concrete examples should come before abstract rules, answering the query.",
+          "risk": "low",
+          "selected_aliases": [
+            "preference_003_target"
+          ],
+          "selected_memory_ids": [
+            "mem_38c1bd89eff64b858bb670ba61baa326"
+          ],
+          "candidate_aliases": [
+            "preference_003_target",
+            "preference_003_distractor_b",
+            "preference_003_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_38c1bd89eff64b858bb670ba61baa326",
+            "mem_dacc6c0ea6ee4ae789cbd8e984ebd591",
+            "mem_569f559f4ff7429eaab8b37e9ac756c3"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_38c1bd89eff64b858bb670ba61baa326",
+              "mem_dacc6c0ea6ee4ae789cbd8e984ebd591",
+              "mem_569f559f4ff7429eaab8b37e9ac756c3"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_004",
+      "category": "public_longmem_single_session_preference",
+      "query": "How should I introduce a technical idea?",
+      "expected_aliases": [
+        "preference_004_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_004_distractor_a"
+        ],
+        "semantic": [
+          "preference_004_distractor_a"
+        ],
+        "hybrid": [
+          "preference_004_distractor_a"
+        ],
+        "guarded_hybrid": [
+          "preference_004_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_004_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_004_target"
+        ],
+        "semantic": [
+          "preference_004_target"
+        ],
+        "hybrid": [
+          "preference_004_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_004_distractor_a"
+        ],
+        "semantic": [
+          "preference_004_distractor_a"
+        ],
+        "hybrid": [
+          "preference_004_distractor_a"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_004_target"
+          ],
+          "selected_memory_ids": [
+            "mem_12330bf4ede84d9f85994a8406aa360b"
+          ],
+          "candidate_aliases": [
+            "preference_004_target",
+            "preference_004_distractor_b",
+            "preference_004_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_12330bf4ede84d9f85994a8406aa360b",
+            "mem_99bc942f254349a29397e6c422ec1e15",
+            "mem_3b84590f836b4cd7992013a6cb2f053b"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_005",
+      "category": "public_longmem_single_session_preference",
+      "query": "What format makes explanations easier for the user?",
+      "expected_aliases": [
+        "preference_005_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_005_distractor_b"
+        ],
+        "semantic": [
+          "preference_005_target"
+        ],
+        "hybrid": [
+          "preference_005_target"
+        ],
+        "guarded_hybrid": [
+          "preference_005_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_005_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_005_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_005_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_005_target"
+          ],
+          "selected_memory_ids": [
+            "mem_bb743b75afbe446291ef379cdf757ac6"
+          ],
+          "candidate_aliases": [
+            "preference_005_target",
+            "preference_005_distractor_b",
+            "preference_005_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_bb743b75afbe446291ef379cdf757ac6",
+            "mem_ea523b5494894965994e3289a214c8a6",
+            "mem_999554a1ce184f199162dc4599241e7b"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_006",
+      "category": "public_longmem_single_session_preference",
+      "query": "When explaining a mechanism, what should appear first?",
+      "expected_aliases": [
+        "preference_006_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_006_distractor_a"
+        ],
+        "semantic": [
+          "preference_006_distractor_a"
+        ],
+        "hybrid": [
+          "preference_006_distractor_a"
+        ],
+        "guarded_hybrid": [
+          "preference_006_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_006_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_006_target"
+        ],
+        "semantic": [
+          "preference_006_target"
+        ],
+        "hybrid": [
+          "preference_006_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_006_distractor_a"
+        ],
+        "semantic": [
+          "preference_006_distractor_a"
+        ],
+        "hybrid": [
+          "preference_006_distractor_a"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_006_target"
+          ],
+          "selected_memory_ids": [
+            "mem_5460f529360741ee9821dc6a38616040"
+          ],
+          "candidate_aliases": [
+            "preference_006_target",
+            "preference_006_distractor_b",
+            "preference_006_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_5460f529360741ee9821dc6a38616040",
+            "mem_80775249135640dd89ee0b6ea59608e0",
+            "mem_ec65e7309054405b99fe56323236d276"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_007",
+      "category": "public_longmem_single_session_preference",
+      "query": "What user preference applies to teaching?",
+      "expected_aliases": [
+        "preference_007_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_007_distractor_b"
+        ],
+        "semantic": [
+          "preference_007_target"
+        ],
+        "hybrid": [
+          "preference_007_target"
+        ],
+        "guarded_hybrid": [
+          "preference_007_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_007_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_007_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_007_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_007_target"
+          ],
+          "selected_memory_ids": [
+            "mem_7f517f23469848a08eff4e6649fe670a"
+          ],
+          "candidate_aliases": [
+            "preference_007_target",
+            "preference_007_distractor_b",
+            "preference_007_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_7f517f23469848a08eff4e6649fe670a",
+            "mem_a635fc0a56e64571a66ca3b7b56973c4",
+            "mem_77db41e20e3c4b66ad968e5fe7959b0c"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_008",
+      "category": "public_longmem_single_session_preference",
+      "query": "Should I start with definitions or a concrete case?",
+      "expected_aliases": [
+        "preference_008_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_008_distractor_a"
+        ],
+        "semantic": [
+          "preference_008_target"
+        ],
+        "hybrid": [
+          "preference_008_target"
+        ],
+        "guarded_hybrid": [
+          "preference_008_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_008_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_008_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_008_distractor_a"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_008_target"
+          ],
+          "selected_memory_ids": [
+            "mem_9a7bad6e3a2345ef9d5e98d7e7c2220c"
+          ],
+          "candidate_aliases": [
+            "preference_008_target",
+            "preference_008_distractor_b",
+            "preference_008_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_9a7bad6e3a2345ef9d5e98d7e7c2220c",
+            "mem_22406b0eca434a4191b6cd4ddf6962a0",
+            "mem_31db27f75e054b278710e0fcb698dd69"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_009",
+      "category": "public_longmem_single_session_preference",
+      "query": "How do they like to learn abstractions?",
+      "expected_aliases": [
+        "preference_009_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_009_distractor_b"
+        ],
+        "semantic": [
+          "preference_009_distractor_b"
+        ],
+        "hybrid": [
+          "preference_009_distractor_b"
+        ],
+        "guarded_hybrid": [
+          "preference_009_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_009_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_009_target"
+        ],
+        "semantic": [
+          "preference_009_target"
+        ],
+        "hybrid": [
+          "preference_009_target"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_009_distractor_b"
+        ],
+        "semantic": [
+          "preference_009_distractor_b"
+        ],
+        "hybrid": [
+          "preference_009_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_009_target"
+          ],
+          "selected_memory_ids": [
+            "mem_af27c9be6abf4e6a98a340de84f71a0b"
+          ],
+          "candidate_aliases": [
+            "preference_009_target",
+            "preference_009_distractor_b",
+            "preference_009_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_af27c9be6abf4e6a98a340de84f71a0b",
+            "mem_84d6196eabaf4231bb3635fc4b7a54f9",
+            "mem_4444369990ac4410931202b23344bd72"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_010",
+      "category": "public_longmem_single_session_preference",
+      "query": "What explanation order should be remembered?",
+      "expected_aliases": [
+        "preference_010_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_010_target"
+        ],
+        "semantic": [
+          "preference_010_target"
+        ],
+        "hybrid": [
+          "preference_010_target"
+        ],
+        "guarded_hybrid": [
+          "preference_010_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_010_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_010_target"
+          ],
+          "selected_memory_ids": [
+            "mem_fe3842a5b4434359abfc4774e9de36db"
+          ],
+          "candidate_aliases": [
+            "preference_010_target",
+            "preference_010_distractor_b",
+            "preference_010_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_fe3842a5b4434359abfc4774e9de36db",
+            "mem_38e370936a9c493e828dca0e21e6da21",
+            "mem_4dbd12dcea75492094cce45a1703f751"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_011",
+      "category": "public_longmem_single_session_preference",
+      "query": "Which response pattern helps the user understand?",
+      "expected_aliases": [
+        "preference_011_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_011_distractor_b"
+        ],
+        "semantic": [
+          "preference_011_target"
+        ],
+        "hybrid": [
+          "preference_011_target"
+        ],
+        "guarded_hybrid": [
+          "preference_011_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_011_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_011_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_011_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_011_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1964eadbaaab49ae9e6f3527faf00b1a"
+          ],
+          "candidate_aliases": [
+            "preference_011_target",
+            "preference_011_distractor_a",
+            "preference_011_distractor_b"
+          ],
+          "candidate_memory_ids": [
+            "mem_1964eadbaaab49ae9e6f3527faf00b1a",
+            "mem_10c0ba35aef84f9e9f16015edf789c75",
+            "mem_fd35448de16e4b5faeb436ffe0050baf"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_012",
+      "category": "public_longmem_single_session_preference",
+      "query": "What should I do before generalizing the rule?",
+      "expected_aliases": [
+        "preference_012_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_012_distractor_b"
+        ],
+        "semantic": [
+          "preference_012_distractor_b"
+        ],
+        "hybrid": [
+          "preference_012_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "preference_012_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_012_target"
+        ],
+        "semantic": [
+          "preference_012_target"
+        ],
+        "hybrid": [
+          "preference_012_target"
+        ],
+        "guarded_hybrid": [
+          "preference_012_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_012_distractor_b"
+        ],
+        "semantic": [
+          "preference_012_distractor_b"
+        ],
+        "hybrid": [
+          "preference_012_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "preference_012_target",
+          "preference_012_distractor_b"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "remote_recall_judge",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "The user preference directly advises to start with a concrete example before presenting abstract rules, which answers the query.",
+          "risk": "low",
+          "selected_aliases": [
+            "preference_012_target"
+          ],
+          "selected_memory_ids": [
+            "mem_f274c2e4e7ed4fcc8659f795c8d8d14e"
+          ],
+          "candidate_aliases": [
+            "preference_012_target",
+            "preference_012_distractor_b",
+            "preference_012_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_f274c2e4e7ed4fcc8659f795c8d8d14e",
+            "mem_e31e0920a79c4f9883af9475bb484d6d",
+            "mem_27fb46f8e3b54effbfc7dc19923f64c8"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_f274c2e4e7ed4fcc8659f795c8d8d14e",
+              "mem_e31e0920a79c4f9883af9475bb484d6d",
+              "mem_27fb46f8e3b54effbfc7dc19923f64c8"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_013",
+      "category": "public_longmem_single_session_preference",
+      "query": "How should I frame an unfamiliar API?",
+      "expected_aliases": [
+        "preference_013_target"
+      ],
+      "results_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "preference_013_distractor_b"
+        ],
+        "hybrid": [
+          "preference_013_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": [
+          "preference_013_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_013_target"
+        ],
+        "semantic": [
+          "preference_013_target"
+        ],
+        "hybrid": [
+          "preference_013_target"
+        ],
+        "guarded_hybrid": [
+          "preference_013_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "preference_013_distractor_b"
+        ],
+        "hybrid": [
+          "preference_013_distractor_b"
+        ],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [
+          "preference_013_distractor_b",
+          "preference_013_target"
+        ],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": false,
+        "hybrid": false,
+        "guarded_hybrid": false,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "deepseek-v4-flash",
+          "model": "deepseek-v4-flash",
+          "decision": "accepted",
+          "reason": "The user preference for explanations starting with a concrete example before abstract rules should guide how the agent frames an unfamiliar API, making it relevant behavior-guidance memory.",
+          "risk": "low",
+          "selected_aliases": [
+            "preference_013_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1f2b7291932f415a800a5db9944a69f9"
+          ],
+          "candidate_aliases": [
+            "preference_013_distractor_b",
+            "preference_013_target",
+            "preference_013_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_9acbda684e1544d3bd3ef62ae8c9c17b",
+            "mem_1f2b7291932f415a800a5db9944a69f9",
+            "mem_8453cd93841141a195670674d29467d4"
+          ],
+          "warnings": [],
+          "metadata": {
+            "allowed_memory_ids": [
+              "mem_9acbda684e1544d3bd3ef62ae8c9c17b",
+              "mem_1f2b7291932f415a800a5db9944a69f9",
+              "mem_8453cd93841141a195670674d29467d4"
+            ],
+            "request_mode": "single",
+            "remote_judge_called": true,
+            "call_reason": "local_ambiguous_candidates"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_014",
+      "category": "public_longmem_single_session_preference",
+      "query": "What did the user prefer about examples?",
+      "expected_aliases": [
+        "preference_014_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_014_distractor_b"
+        ],
+        "semantic": [
+          "preference_014_target"
+        ],
+        "hybrid": [
+          "preference_014_target"
+        ],
+        "guarded_hybrid": [
+          "preference_014_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_014_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_014_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_014_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_014_target"
+          ],
+          "selected_memory_ids": [
+            "mem_0b71395b94604398a3949b5b56714297"
+          ],
+          "candidate_aliases": [
+            "preference_014_target",
+            "preference_014_distractor_b",
+            "preference_014_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_0b71395b94604398a3949b5b56714297",
+            "mem_f377cacb3cd043f48d162334da53beb7",
+            "mem_d776b2e4205f427286d6bd5a23fa49f9"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_015",
+      "category": "public_longmem_single_session_preference",
+      "query": "What learning preference matters here?",
+      "expected_aliases": [
+        "preference_015_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_015_target"
+        ],
+        "semantic": [
+          "preference_015_target"
+        ],
+        "hybrid": [
+          "preference_015_target"
+        ],
+        "guarded_hybrid": [
+          "preference_015_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_015_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_015_target"
+          ],
+          "selected_memory_ids": [
+            "mem_08213dc0b15340a3b7ccc44c274cb57b"
+          ],
+          "candidate_aliases": [
+            "preference_015_target",
+            "preference_015_distractor_b",
+            "preference_015_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_08213dc0b15340a3b7ccc44c274cb57b",
+            "mem_4cca8ecdd2384afa98b7f4de315ad374",
+            "mem_9d6614d34818469cbf5db8cd55e697d0"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_016",
+      "category": "public_longmem_single_session_preference",
+      "query": "How should conceptual material be introduced?",
+      "expected_aliases": [
+        "preference_016_target"
+      ],
+      "results_by_mode": {
+        "keyword": [],
+        "semantic": [
+          "preference_016_target"
+        ],
+        "hybrid": [
+          "preference_016_target"
+        ],
+        "guarded_hybrid": [
+          "preference_016_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_016_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_016_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_016_target"
+          ],
+          "selected_memory_ids": [
+            "mem_1699eae8533e476bb990228298551311"
+          ],
+          "candidate_aliases": [
+            "preference_016_target",
+            "preference_016_distractor_b",
+            "preference_016_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_1699eae8533e476bb990228298551311",
+            "mem_6124e31f51e1419ea387f547be585725",
+            "mem_03a18cf056d34f2ab416f882e4693b66"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_017",
+      "category": "public_longmem_single_session_preference",
+      "query": "What should the first paragraph include?",
+      "expected_aliases": [
+        "preference_017_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_017_distractor_b"
+        ],
+        "semantic": [
+          "preference_017_target"
+        ],
+        "hybrid": [
+          "preference_017_target"
+        ],
+        "guarded_hybrid": [
+          "preference_017_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_017_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_017_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_017_distractor_b"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_017_target"
+          ],
+          "selected_memory_ids": [
+            "mem_9fbfa7f4f0024b158073ca9eb5e640c8"
+          ],
+          "candidate_aliases": [
+            "preference_017_target",
+            "preference_017_distractor_b",
+            "preference_017_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_9fbfa7f4f0024b158073ca9eb5e640c8",
+            "mem_f330758e1f824ebca106d1ad499631a6",
+            "mem_3a4da1ab396a49739f4ce72a7aeeb97e"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_018",
+      "category": "public_longmem_single_session_preference",
+      "query": "Which explanation style fits this user?",
+      "expected_aliases": [
+        "preference_018_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_018_target"
+        ],
+        "semantic": [
+          "preference_018_target"
+        ],
+        "hybrid": [
+          "preference_018_target"
+        ],
+        "guarded_hybrid": [
+          "preference_018_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_018_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": true,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_018_target"
+          ],
+          "selected_memory_ids": [
+            "mem_69a85ac1066b45048b34066bb628ad6e"
+          ],
+          "candidate_aliases": [
+            "preference_018_target",
+            "preference_018_distractor_b",
+            "preference_018_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_69a85ac1066b45048b34066bb628ad6e",
+            "mem_a863b01670244f09a2551c72374055d7",
+            "mem_afb90a2c57494aa99a6a554e32351843"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    },
+    {
+      "case_name": "semantic_public_preference_019",
+      "category": "public_longmem_single_session_preference",
+      "query": "What memory guides teaching a complex idea?",
+      "expected_aliases": [
+        "preference_019_target"
+      ],
+      "results_by_mode": {
+        "keyword": [
+          "preference_019_distractor_a"
+        ],
+        "semantic": [
+          "preference_019_target"
+        ],
+        "hybrid": [
+          "preference_019_target"
+        ],
+        "guarded_hybrid": [
+          "preference_019_target"
+        ],
+        "selective_llm_guarded_hybrid": [
+          "preference_019_target"
+        ]
+      },
+      "missing_by_mode": {
+        "keyword": [
+          "preference_019_target"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "unexpected_by_mode": {
+        "keyword": [
+          "preference_019_distractor_a"
+        ],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "ambiguous_by_mode": {
+        "keyword": [],
+        "semantic": [],
+        "hybrid": [],
+        "guarded_hybrid": [],
+        "selective_llm_guarded_hybrid": []
+      },
+      "passed_by_mode": {
+        "keyword": false,
+        "semantic": true,
+        "hybrid": true,
+        "guarded_hybrid": true,
+        "selective_llm_guarded_hybrid": true
+      },
+      "judge_by_mode": {
+        "selective_llm_guarded_hybrid": {
+          "provider": "local",
+          "model": null,
+          "decision": "accepted",
+          "reason": "Skipped remote recall judge because local guard was confident.",
+          "risk": "medium",
+          "selected_aliases": [
+            "preference_019_target"
+          ],
+          "selected_memory_ids": [
+            "mem_2521c0c1dc5c4b4197890a5ff9dd4509"
+          ],
+          "candidate_aliases": [
+            "preference_019_target",
+            "preference_019_distractor_b",
+            "preference_019_distractor_a"
+          ],
+          "candidate_memory_ids": [
+            "mem_2521c0c1dc5c4b4197890a5ff9dd4509",
+            "mem_d20f9bf4a52943fe9e22e20a0e0d0e04",
+            "mem_80bd6b762873497ebc81d20b9a018850"
+          ],
+          "warnings": [],
+          "metadata": {
+            "skipped_remote_call": true,
+            "remote_judge_called": false,
+            "skip_reason": "local_guard_confident"
+          }
+        }
+      },
+      "warnings": [],
+      "metadata": {}
+    }
+  ],
+  "warnings": [
+    "hybrid_reduced_false_negatives:48->6",
+    "hybrid_unexpected_aliases=6; review noise cases",
+    "guard_reduced_unexpected_aliases:6->0",
+    "guarded_hybrid_ambiguous=12; review ambiguous cases",
+    "selective_llm_judge_calls=6; skipped=54"
+  ],
+  "metadata": {
+    "embedding_cache": {
+      "enabled": true,
+      "path": "data\\benchmark_remote_retrieval_public_embeddings.jsonl",
+      "entries": 69,
+      "hits": 240,
+      "misses": 69,
+      "writes": 69,
+      "load_errors": 0
+    },
+    "prefetch": {
+      "enabled": true,
+      "case_concurrency": 4,
+      "text_count": 69,
+      "batch_count": 5,
+      "errors": 0,
+      "error_samples": []
+    },
+    "case_concurrency": 4,
+    "judge": {
+      "mode": "single",
+      "group_size": 1,
+      "concurrency": 4,
+      "pending_tasks": 6,
+      "single_calls": 6,
+      "batch_count": 0,
+      "batch_calls": 0,
+      "fallback_single_calls": 0,
+      "errors": 0
+    }
+  },
+  "benchmark": {
+    "name": "single_parallel4",
+    "seconds": 15.0,
+    "target_mode": "selective_llm_guarded_hybrid"
+  }
+}

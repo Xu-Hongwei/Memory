@@ -26,14 +26,15 @@
 
 ```text
 Event
-  -> Candidate Extraction
-  -> Local Governance
+  -> Remote / Local Route
+  -> long_term / session / ignore / reject / ask_user
+  -> long_term: Candidate Extraction + Local Governance
   -> Policy Evaluation
   -> Commit / Merge / Ask User / Reject
   -> Lifecycle Management
 ```
 
-远程 LLM 只参与候选提取，不参与最终写入裁决。最终裁决以本地 `evaluate_candidate(...)` 和显式人工操作为准。
+远程 LLM 负责把事件拆成原子项并做初步分流，但不参与最终长期写入裁决。`long_term` 项必须转换为候选并经过本地 `evaluate_candidate(...)`；`session` 项只进入当前会话短期记忆；`ignore/reject/ask_user` 不会自动写入长期记忆。旧的 `extract_candidates` 链路只适合作为 legacy long-term-only 调试入口。
 
 ## 3. Event 层判断
 
@@ -132,6 +133,21 @@ temporarily
 ```text
 “临时状态”作为被讨论的概念，不等于这条信息本身是临时请求。
 ```
+
+## 5.1 短期记忆分流
+
+短期记忆不是“被长期拒绝的所有内容”，只保留对当前对话或当前任务有帮助的信息：
+
+```text
+task_state          当前任务进度、当前目标、正在处理的文件
+temporary_rule      本轮约束，例如“先不要提交”“这次只改文档”
+working_fact        刚跑完的命令结果、当前验证状态、临时观察
+pending_decision    等用户确认或后续再决定的事项
+emotional_state     当前困惑、焦虑、疲惫、需要放慢解释等对回应方式有影响的状态
+scratch_note        其他当前会话内有用但不适合长期保存的备注
+```
+
+短期记忆推荐由 `RemoteLLMClient.route_memories(...)` 一次性分流产生；本地 `extract_session_items_from_event(...)` 只作为明显临时线索的 fallback。寒暄、简单确认、低信息闲聊应进入 `ignore`，不应该为了“省掉长期记忆”而全部塞进短期记忆。
 
 ## 6. 写入门禁决策
 
@@ -440,6 +456,8 @@ same from entity
 ```powershell
 python tests\fixtures\golden_cases\audit_golden_cases.py --strict
 python -m pytest tests\test_golden_write_policy.py -q
+python -m pytest tests\test_golden_write_policy_cn_realistic.py -q
+python -m pytest tests\test_golden_write_policy_en_realistic.py -q
 python -m pytest tests\test_golden_retrieval_context.py -q
 python -m pytest tests\test_golden_lifecycle.py -q
 python -m pytest tests\test_golden_task_recall.py -q
@@ -449,6 +467,8 @@ python -m pytest tests\test_golden_graph_recall.py -q
 python -m pytest tests\test_golden_graph_conflicts.py -q
 python -m pytest tests\test_golden_conflict_reviews.py -q
 python -m pytest tests\test_remote_adapters.py -q
+python tools\evaluate_write_gate.py
+python tools\evaluate_write_gate.py --sample-per-category 1 --remote --failure-limit 10
 ```
 
 规则修改后的判断标准：

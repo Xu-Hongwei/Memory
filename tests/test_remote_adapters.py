@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from datetime import datetime, timezone
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from threading import Thread
+from threading import Lock, Thread
 from typing import Any
 
 import pytest
 
 from memory_system import EventCreate, EventLog, MemoryStore, create_app
 from memory_system.remote import (
+    DEFAULT_DEEPSEEK_BASE_URL,
     DASHSCOPE_MULTIMODAL_COMPATIBILITY,
     DASHSCOPE_MULTIMODAL_EMBEDDING_URL,
     DEFAULT_EMBEDDING_MODEL,
@@ -635,6 +637,10 @@ def test_dashscope_env_config_uses_openai_compatible_defaults(monkeypatch):
     monkeypatch.delenv("MEMORY_REMOTE_BASE_URL", raising=False)
     monkeypatch.delenv("MEMORY_REMOTE_API_KEY", raising=False)
     monkeypatch.delenv("MEMORY_REMOTE_COMPATIBILITY", raising=False)
+    monkeypatch.delenv("MEMORY_REMOTE_LLM_MODEL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_BASE_URL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.setenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     monkeypatch.setenv("DASHSCOPE_API_KEY", "dash-key")
 
@@ -649,6 +655,106 @@ def test_dashscope_env_config_uses_openai_compatible_defaults(monkeypatch):
     assert config.health_path == "/models"
     assert config.llm_model == DEFAULT_LLM_MODEL
     assert config.embedding_model == DEFAULT_EMBEDDING_MODEL
+
+
+def test_deepseek_env_config_uses_openai_compatible_defaults(monkeypatch):
+    monkeypatch.delenv("MEMORY_REMOTE_BASE_URL", raising=False)
+    monkeypatch.delenv("MEMORY_REMOTE_API_KEY", raising=False)
+    monkeypatch.delenv("MEMORY_REMOTE_COMPATIBILITY", raising=False)
+    monkeypatch.delenv("MEMORY_REMOTE_LLM_MODEL", raising=False)
+    monkeypatch.delenv("DASHSCOPE_BASE_URL", raising=False)
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
+    config = RemoteAdapterConfig.from_env()
+
+    assert config.base_url == DEFAULT_DEEPSEEK_BASE_URL
+    assert config.api_key == "deepseek-key"
+    assert config.compatibility == OPENAI_COMPATIBILITY
+    assert config.llm_extract_path == "/chat/completions"
+    assert config.health_path == "/models"
+    assert config.llm_model == "deepseek-v4-flash"
+    assert config.embedding_model == DEFAULT_EMBEDDING_MODEL
+
+
+def test_split_remote_env_uses_deepseek_for_llm_and_dashscope_for_embedding(monkeypatch):
+    for key in (
+        "MEMORY_REMOTE_BASE_URL",
+        "MEMORY_REMOTE_API_KEY",
+        "MEMORY_REMOTE_COMPATIBILITY",
+        "MEMORY_REMOTE_LLM_MODEL",
+        "LLM_REMOTE_BASE_URL",
+        "LLM_REMOTE_API_KEY",
+        "LLM_REMOTE_MODEL",
+        "LLM_REMOTE_LLM_MODEL",
+        "EMBEDDING_REMOTE_BASE_URL",
+        "EMBEDDING_REMOTE_API_KEY",
+        "EMBEDDING_REMOTE_MODEL",
+        "EMBEDDING_REMOTE_EMBEDDING_MODEL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    monkeypatch.setenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "dash-key")
+
+    llm_config = RemoteAdapterConfig.llm_from_env()
+    embedding_config = RemoteAdapterConfig.embedding_from_env()
+
+    assert llm_config.base_url == DEFAULT_DEEPSEEK_BASE_URL
+    assert llm_config.api_key == "deepseek-key"
+    assert llm_config.llm_model == "deepseek-v4-flash"
+    assert embedding_config.base_url == "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    assert embedding_config.api_key == "dash-key"
+    assert embedding_config.embedding_compatibility == DASHSCOPE_MULTIMODAL_COMPATIBILITY
+    assert embedding_config.embedding_path == DASHSCOPE_MULTIMODAL_EMBEDDING_URL
+    assert embedding_config.embedding_model == DEFAULT_EMBEDDING_MODEL
+
+
+def test_explicit_embedding_remote_env_overrides_dashscope(monkeypatch):
+    monkeypatch.setenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "dash-key")
+    monkeypatch.setenv("EMBEDDING_REMOTE_BASE_URL", "https://embedding.example.test/v1")
+    monkeypatch.setenv("EMBEDDING_REMOTE_API_KEY", "embedding-key")
+    monkeypatch.setenv("EMBEDDING_REMOTE_MODEL", "embedding-small")
+    monkeypatch.setenv("EMBEDDING_REMOTE_COMPATIBILITY", "openai")
+
+    config = RemoteAdapterConfig.embedding_from_env()
+
+    assert config.base_url == "https://embedding.example.test/v1"
+    assert config.api_key == "embedding-key"
+    assert config.embedding_model == "embedding-small"
+    assert config.embedding_compatibility == OPENAI_COMPATIBILITY
+    assert config.embedding_path == "/embeddings"
+
+
+def test_llm_remote_model_alias_overrides_model(monkeypatch):
+    monkeypatch.setenv("LLM_REMOTE_BASE_URL", "https://llm.example.test/v1")
+    monkeypatch.setenv("LLM_REMOTE_API_KEY", "llm-key")
+    monkeypatch.setenv("LLM_REMOTE_MODEL", "llm-alias-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
+    config = RemoteAdapterConfig.llm_from_env()
+
+    assert config.base_url == "https://llm.example.test/v1"
+    assert config.api_key == "llm-key"
+    assert config.llm_model == "llm-alias-model"
+
+
+def test_memory_remote_env_overrides_deepseek_env(monkeypatch):
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("MEMORY_REMOTE_API_KEY", "memory-key")
+    monkeypatch.setenv("MEMORY_REMOTE_LLM_MODEL", "memory-model")
+    monkeypatch.setenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
+    config = RemoteAdapterConfig.from_env()
+
+    assert config.base_url == "https://example.test/v1"
+    assert config.api_key == "memory-key"
+    assert config.llm_model == "memory-model"
 
 
 def test_remote_llm_client_openai_compatible_chat_completion(remote_server):
@@ -710,6 +816,66 @@ def test_remote_llm_client_openai_compatible_chat_completion(remote_server):
     assert captured[0]["payload"]["model"] == DEFAULT_LLM_MODEL
     assert captured[0]["payload"]["response_format"] == {"type": "json_object"}
     assert captured[0]["authorization"] == "Bearer dash-key"
+
+
+def test_remote_llm_client_repairs_markdown_fenced_json(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/chat/completions")] = lambda payload: (
+        200,
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "```json\n"
+                            + json.dumps(
+                                {
+                                    "provider": "deepseek",
+                                    "candidates": [
+                                        {
+                                            "content": "Fenced JSON candidate.",
+                                            "memory_type": "workflow",
+                                            "subject": "json repair",
+                                            "confidence": "confirmed",
+                                            "evidence_type": "direct_user_statement",
+                                            "time_validity": "persistent",
+                                            "reuse_cases": ["remote_validation"],
+                                            "scores": {
+                                                "long_term": 0.8,
+                                                "evidence": 0.8,
+                                                "reuse": 0.8,
+                                            },
+                                        }
+                                    ],
+                                }
+                            )
+                            + "\n```"
+                        )
+                    }
+                }
+            ]
+        },
+    )
+    event = EventRead(
+        id="evt_openai_fenced_json",
+        event_type="user_message",
+        content="OpenAI-compatible fenced JSON extraction event.",
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(
+        RemoteAdapterConfig(
+            base_url=base_url,
+            compatibility=OPENAI_COMPATIBILITY,
+            llm_extract_path="/chat/completions",
+        )
+    ).extract_candidates(event)
+
+    assert result.provider == "deepseek"
+    assert result.candidates[0].subject == "json repair"
 
 
 def test_remote_llm_client_filters_sensitive_remote_candidates(remote_server):
@@ -871,6 +1037,880 @@ def test_remote_llm_client_adds_high_confidence_fallbacks_for_empty_remote_resul
     assert warning in result.warnings
 
 
+def test_remote_llm_client_adds_low_evidence_preference_fallback_for_empty_results(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_low_evidence_fallback",
+        event_type="user_message",
+        content=(
+            "\u53ef\u80fd\u6211\u66f4\u559c\u6b22\u4f60\u5728\u56de\u7b54"
+            "\u957f\u95ee\u9898\u65f6\u77ed\u4e00\u70b9\uff0c\u4f46\u6211"
+            "\u8fd8\u6ca1\u60f3\u597d\u3002"
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "user_preference"
+    assert result.candidates[0].confidence == "inferred"
+    assert result.candidates[0].scores.evidence == 0.4
+    assert "local_remote_fallback:low_evidence_user_preference" in result.warnings
+
+
+def test_remote_llm_client_prioritizes_uncertain_preference_over_stable_fallback(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_uncertain_preference_fallback",
+        event_type="user_message",
+        content=(
+            "\u4e0d\u786e\u5b9a\u4ee5\u540e\u56de\u7b54\u957f\u95ee"
+            "\u9898\u662f\u4e0d\u662f\u90fd\u8981\u77ed\u4e00\u70b9"
+            "\uff0c\u8fd9\u6761\u5148\u9700\u8981\u786e\u8ba4\u3002"
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].confidence == "inferred"
+    assert result.candidates[0].scores.evidence == 0.4
+    assert "local_remote_fallback:low_evidence_user_preference" in result.warnings
+    assert "local_remote_fallback:stable_user_preference" not in result.warnings
+
+
+def test_remote_llm_client_adds_english_low_evidence_preference_fallback(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_low_evidence_english_fallback",
+        event_type="user_message",
+        content="Perhaps I want minimal code comments; please ask before treating this as stable.",
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "user_preference"
+    assert result.candidates[0].confidence == "inferred"
+    assert result.candidates[0].scores.evidence == 0.4
+    assert "local_remote_fallback:low_evidence_user_preference" in result.warnings
+
+
+def test_remote_llm_client_adds_low_evidence_fixture_naming_fallback(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_low_evidence_fixture_naming",
+        event_type="user_message",
+        content=(
+            "there is a chance I prefer fixture naming; "
+            "please ask before treating this as stable."
+        ),
+        source="conversation",
+        scope="global",
+        metadata={
+            "claim": (
+                "there is a chance I prefer fixture naming; "
+                "please ask before treating this as stable."
+            ),
+            "memory_type": "user_preference",
+            "subject": "low evidence preference about fixture naming",
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "user_preference"
+    assert result.candidates[0].evidence_type == "unknown"
+    assert result.candidates[0].confidence == "inferred"
+    assert "local_remote_fallback:low_evidence_user_preference" in result.warnings
+
+
+def test_remote_llm_client_adds_stable_preference_fallback_for_empty_results(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_stable_preference_fallback",
+        event_type="user_message",
+        content=(
+            "Always that for test strategy writeups, you name the verification "
+            "command explicitly, especially when the task touches existing code."
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "user_preference"
+    assert result.candidates[0].confidence == "confirmed"
+    assert result.candidates[0].evidence_type == "direct_user_statement"
+    assert "local_remote_fallback:stable_user_preference" in result.warnings
+
+
+def test_remote_llm_client_adds_tool_rule_fallback_for_empty_results(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_tool_rule_fallback",
+        event_type="user_message",
+        content=(
+            "已确认 tool rule for refreshing documentation: "
+            "run the focused pytest file before broad regression."
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "tool_rule"
+    assert result.candidates[0].time_validity == "until_changed"
+    assert "local_remote_fallback:tool_rule" in result.warnings
+
+
+def test_remote_llm_client_adds_project_fact_fallback_for_file_observation(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_project_fact_fallback",
+        event_type="file_observation",
+        content=(
+            "Confirmed dev command: the development command is memoryctl serve; "
+            "source is pyproject.toml."
+        ),
+        source="pyproject.toml",
+        scope="repo:C:/workspace/memory",
+        metadata={"subject": "dev command from pyproject.toml"},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "project_fact"
+    assert result.candidates[0].subject == "dev command from pyproject.toml"
+    assert "local_remote_fallback:project_fact" in result.warnings
+
+
+def test_remote_llm_client_uses_metadata_type_fallback_before_command_cues(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_metadata_environment_fallback",
+        event_type="tool_result",
+        content="Confirmed environment fact for Python invocation: tests are run through python -m pytest.",
+        source="shell",
+        scope="repo:C:/workspace/memory",
+        metadata={
+            "memory_type": "environment_fact",
+            "subject": "Python invocation environment",
+            "evidence_type": "tool_result",
+            "time_validity": "until_changed",
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "environment_fact"
+    assert result.candidates[0].subject == "Python invocation environment"
+    assert "local_remote_fallback:metadata_environment_fact" in result.warnings
+
+
+def test_remote_llm_client_does_not_fallback_rejected_preference_for_empty_results(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_rejected_preference_fallback",
+        event_type="user_message",
+        content="I like that seaside photo; do not treat it as my travel preference.",
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert result.candidates == []
+    assert "local_remote_fallback:stable_user_preference" not in result.warnings
+
+
+def test_remote_llm_client_adds_troubleshooting_fallback_for_empty_results(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_troubleshooting_fallback",
+        event_type="tool_result",
+        content=(
+            "Verified troubleshooting note: Problem: NaturalConv directory existed "
+            "but lacked dialog_release.json. Lesson: exists does not mean complete. "
+            "Solution: refreshing with --force passed validation."
+        ),
+        source="download_public_memory_datasets",
+        scope="repo:C:/workspace/en-realistic",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "troubleshooting"
+    assert result.candidates[0].evidence_type == "tool_result"
+    assert "local_remote_fallback:troubleshooting" in result.warnings
+
+
+def test_remote_llm_client_does_not_fallback_temporary_branch_name(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {"provider": "fake-llm", "warnings": ["remote returned empty"], "candidates": []},
+    )
+    event = EventRead(
+        id="evt_remote_temporary_branch_name",
+        event_type="user_message",
+        content="\u8fd9\u4e2a\u5206\u652f\u5148\u53eb memory-demo\uff0c\u540e\u9762\u53ef\u80fd\u4f1a\u6539\u540d\u3002",
+        source="conversation",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert result.candidates == []
+    assert "local_remote_fallback:low_evidence_user_preference" not in result.warnings
+
+
+def test_remote_llm_client_downgrades_overconfident_low_evidence_preference(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "user_preference",
+                    "subject": "answer style",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that over-commits an underspecified preference.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["style_guidance", "future_responses"],
+                    "scores": {
+                        "long_term": 0.9,
+                        "evidence": 0.9,
+                        "reuse": 0.8,
+                        "risk": 0.1,
+                        "specificity": 0.8,
+                    },
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_low_evidence_downgrade",
+        event_type="user_message",
+        content=(
+            "\u521a\u624d\u90a3\u7248 README \u8bf4\u660e\u770b\u7740\u987a"
+            "\uff0c\u4ee5\u540e\u90fd\u8fd9\u6837\u3002"
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].confidence == "inferred"
+    assert result.candidates[0].scores.evidence == 0.4
+    assert result.candidates[0].scores.specificity == 0.3
+    assert result.candidates[0].time_validity == "unknown"
+    assert "downgraded_remote_low_evidence_preference" in result.warnings
+
+
+def test_remote_llm_client_downgrades_underspecified_positive_feedback(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "user_preference",
+                    "subject": "no-match analysis approach",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that over-commits vague positive feedback.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["analysis_style"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_underspecified_positive_feedback",
+        event_type="user_message",
+        content="That no-match analysis angle worked; keep doing it this way.",
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].confidence == "inferred"
+    assert result.candidates[0].time_validity == "unknown"
+    assert result.candidates[0].scores.evidence == 0.4
+    assert "downgraded_remote_low_evidence_preference" in result.warnings
+
+
+def test_remote_llm_client_filters_user_rejected_preference_candidates(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "user_preference",
+                    "subject": "draft reaction",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that ignores the user's rejection.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["style_guidance"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_user_rejected_preference",
+        event_type="user_message",
+        content="Do not treat this as a preference; I liked this draft today.",
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert result.candidates == []
+    assert "filtered_remote_preference_rejected_by_user" in result.warnings
+
+
+def test_remote_llm_client_filters_temporary_user_message_candidates(remote_server):
+    base_url, routes, captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "user_preference",
+                    "subject": "pytest execution behavior",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that over-stores a temporary instruction.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["testing"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_temporary_instruction",
+        event_type="user_message",
+        content="For this task, run only this pytest case for now; the full suite can run later.",
+        source="conversation",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert result.candidates == []
+    assert "filtered_temporary_remote_event" in result.warnings
+    assert captured == []
+
+
+def test_remote_llm_client_filters_pending_question_before_fallback(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "warnings": [
+                "Event is a pending question awaiting confirmation; no long-term memory."
+            ],
+            "candidates": [],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_pending_question",
+        event_type="user_message",
+        content=(
+            "\u5173\u4e8e\u6570\u636e\u96c6\uff1a\u9879\u76ee\u72b6\u6001"
+            "\u66f4\u65b0\u5e94\u8be5\u5199\u6210 decision \u8fd8\u662f "
+            "project_fact\uff1f\u7b49\u6211\u4eec\u786e\u8ba4\u3002"
+        ),
+        source="conversation",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert result.candidates == []
+    assert "filtered_pending_question_remote_event" in result.warnings
+    assert "local_remote_fallback:environment_fact" not in result.warnings
+
+
+def test_remote_llm_client_dedupes_remote_candidates_after_governance(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": "The release workflow is ruff then pytest.",
+                    "memory_type": "workflow",
+                    "subject": "release workflow",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "First duplicate candidate.",
+                    "claim": "Run ruff then pytest before release.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["release_validation"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                },
+                {
+                    "content": "The release workflow is ruff then pytest.",
+                    "memory_type": "workflow",
+                    "subject": "release workflow",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Second duplicate candidate.",
+                    "claim": "Run ruff then pytest before release.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["release_validation"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                },
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_dedupe",
+        event_type="user_message",
+        content="For this repo, the release workflow is ruff then pytest.",
+        source="conversation",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "workflow"
+    assert "deduped_remote_candidate" in result.warnings
+
+
+def test_remote_llm_client_dedupes_same_subject_content_across_scope_drift(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": "Remote phrasing before metadata normalization.",
+                    "memory_type": "project_fact",
+                    "scope": "global",
+                    "subject": "api.py audit script duplicate",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "First duplicate candidate with scope drift.",
+                    "confidence": "confirmed",
+                    "evidence_type": "file_observation",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["dataset_audit"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                },
+                {
+                    "content": "Another remote phrasing before metadata normalization.",
+                    "memory_type": "project_fact",
+                    "subject": "api.py audit script duplicate",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Second duplicate candidate with default scope.",
+                    "confidence": "confirmed",
+                    "evidence_type": "file_observation",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["dataset_audit"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                },
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_scope_drift_dedupe",
+        event_type="file_observation",
+        content=(
+            "\u5df2\u786e\u8ba4 api.py stores audit script: "
+            "\u5df2\u786e\u8ba4 audit_golden_cases.py reports template duplicates."
+        ),
+        source="api.py",
+        scope="repo:C:/workspace/memory",
+        metadata={"subject": "api.py audit script duplicate"},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].subject == "api.py audit script duplicate"
+    assert "deduped_remote_candidate" in result.warnings
+
+
+def test_remote_llm_client_filters_inferred_troubleshooting_derivatives(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "troubleshooting",
+                    "subject": "NaturalConv dataset validation",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "The concrete verified troubleshooting record.",
+                    "confidence": "confirmed",
+                    "evidence_type": "tool_result",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["dataset_validation"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                },
+                {
+                    "content": "Existing directories can still be incomplete.",
+                    "memory_type": "reflection",
+                    "subject": "data integrity principle",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "An inferred principle derived from the troubleshooting note.",
+                    "confidence": "confirmed",
+                    "evidence_type": "inferred",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["dataset_validation"],
+                    "scores": {"long_term": 0.7, "evidence": 0.4, "reuse": 0.5},
+                },
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_troubleshooting_derivative",
+        event_type="tool_result",
+        content=(
+            "Problem: NaturalConv directory existed but lacked dialog_release.json; "
+            "lesson: exists does not mean complete; solution: refreshing with --force "
+            "passed validation. Validation passed."
+        ),
+        source="download_public_memory_datasets",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].subject == "NaturalConv dataset validation"
+    assert "filtered_inferred_troubleshooting_derivative" in result.warnings
+
+
+def test_remote_llm_client_anchors_troubleshooting_evidence_to_event(
+    remote_server,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "troubleshooting",
+                    "subject": "remote embedding timeout",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that reports the evidence as the nested test result.",
+                    "confidence": "likely",
+                    "evidence_type": "test_result",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["remote_embedding_debugging"],
+                    "scores": {"long_term": 0.9, "evidence": 0.8, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_troubleshooting_evidence_anchor",
+        event_type="tool_result",
+        content=(
+            "\u95ee\u9898\uff1aremote embedding call times out\u3002"
+            "\u7ecf\u9a8c\uff1aintent rerank helped only when candidate intent was clear\u3002"
+            "\u89e3\u51b3\u65b9\u5f0f\uff1ainstalled the dependency and the targeted test passed\u3002"
+            "\u9a8c\u8bc1\u901a\u8fc7\u3002"
+        ),
+        source="shell",
+        scope="repo:C:/workspace/memory",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].evidence_type == "tool_result"
+    assert "normalized_remote_candidate_evidence_from_event" in result.warnings
+
+
+def test_remote_llm_client_anchors_candidate_to_event_metadata(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": "Remote summary says the embedding model is configured.",
+                    "memory_type": "project_fact",
+                    "subject": "remote model config",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response with drift from event metadata.",
+                    "confidence": "confirmed",
+                    "evidence_type": "unknown",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["setup"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_metadata_anchor",
+        event_type="tool_result",
+        content=(
+            "\u5de5\u5177\u8f93\u51fa\u786e\u8ba4\uff1a\u8fdc\u7a0b embedding "
+            "\u5f53\u524d\u72b6\u6001\u4e3aembedding \u6a21\u578b\u540d\u662f "
+            "tongyi-embedding-vision-flash-2026-03-06\u3002"
+        ),
+        source="shell",
+        scope="repo:C:/workspace/cn-realistic",
+        metadata={
+            "memory_type": "environment_fact",
+            "subject": "\u8fdc\u7a0b embedding\u73af\u5883\u72b6\u6001",
+            "claim": "\u8fdc\u7a0b embedding \u6a21\u578b\u540d\u5df2\u786e\u8ba4\u3002",
+            "evidence_type": "tool_result",
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    candidate = result.candidates[0]
+    assert candidate.memory_type == "environment_fact"
+    assert candidate.subject == "\u8fdc\u7a0b embedding\u73af\u5883\u72b6\u6001"
+    assert candidate.claim == "\u8fdc\u7a0b embedding \u6a21\u578b\u540d\u5df2\u786e\u8ba4\u3002"
+    assert candidate.evidence_type == "tool_result"
+    assert candidate.content == event.content
+    assert "normalized_remote_candidate_subject_from_event_metadata" in result.warnings
+
+
+def test_remote_llm_client_respects_metadata_memory_type_over_command_cues(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": "tool_rule",
+                    "subject": "Python invocation environment",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that treats an environment fact as a tool rule.",
+                    "confidence": "confirmed",
+                    "evidence_type": "tool_result",
+                    "time_validity": "until_changed",
+                    "reuse_cases": ["verification"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_metadata_type_priority",
+        event_type="tool_result",
+        content="Confirmed environment fact for Python invocation: tests are run through python -m pytest.",
+        source="shell",
+        scope="repo:C:/workspace/memory",
+        metadata={
+            "memory_type": "environment_fact",
+            "subject": "Python invocation environment",
+            "evidence_type": "tool_result",
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "environment_fact"
+    assert "normalized_remote_candidate_type:tool_rule->environment_fact" in result.warnings
+
+
+@pytest.mark.parametrize("remote_type", ["tool_rule", "workflow"])
+def test_remote_llm_client_normalizes_global_stable_preference_drift(
+    remote_server,
+    remote_type,
+):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "candidates": [
+                {
+                    "content": payload["event"]["content"],
+                    "memory_type": remote_type,
+                    "subject": "verification style",
+                    "source_event_ids": [payload["event"]["id"]],
+                    "reason": "Fake response that treats a personal preference as a repo rule.",
+                    "confidence": "confirmed",
+                    "evidence_type": "direct_user_statement",
+                    "time_validity": "persistent",
+                    "reuse_cases": ["style_guidance", "future_responses"],
+                    "scores": {"long_term": 0.9, "evidence": 0.9, "reuse": 0.8},
+                }
+            ],
+        },
+    )
+    event = EventRead(
+        id="evt_remote_global_preference_drift",
+        event_type="user_message",
+        content=(
+            "Always that for test strategy writeups, you name the verification "
+            "command explicitly, especially when the task touches existing code."
+        ),
+        source="conversation",
+        scope="global",
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+
+    result = RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)).extract_candidates(event)
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].memory_type == "user_preference"
+    assert f"normalized_remote_candidate_type:{remote_type}->user_preference" in result.warnings
+
+
 @pytest.mark.parametrize(
     ("content", "scope", "remote_type", "expected_type", "warning"),
     [
@@ -879,6 +1919,15 @@ def test_remote_llm_client_adds_high_confidence_fallbacks_for_empty_remote_resul
             "\u7ecf\u9a8c: set PYTHONPATH=src. "
             "\u89e3\u51b3\u65b9\u5f0f: rerun pytest. "
             "\u9a8c\u8bc1\u901a\u8fc7.",
+            "repo:C:/workspace/memory",
+            "environment_fact",
+            "troubleshooting",
+            "normalized_remote_candidate_type:environment_fact->troubleshooting",
+        ),
+        (
+            "Problem: pytest cannot import memory_system. "
+            "Lesson: set PYTHONPATH=src before invoking pytest. "
+            "Solution: rerun the targeted suite. Verified passed.",
             "repo:C:/workspace/memory",
             "environment_fact",
             "troubleshooting",
@@ -956,6 +2005,23 @@ def test_remote_llm_client_normalizes_governed_candidate_types(
             "workflow",
             "project_fact",
             "normalized_remote_candidate_type:workflow->project_fact",
+        ),
+        (
+            "Confirmed memory_store.py stores lint command: pyproject.toml lint command is python -m ruff check .",
+            "file_observation",
+            "memory_store.py",
+            "tool_rule",
+            "project_fact",
+            "normalized_remote_candidate_type:tool_rule->project_fact",
+        ),
+        (
+            "\u5df2\u786e\u8ba4\uff1a\u9879\u76ee\u8bf4\u660e\u4ee5 PROJECT_OVERVIEW.md "
+            "\u4e3a\u5f53\u524d\u72b6\u6001\u6458\u8981\u3002",
+            "file_observation",
+            "docs_source.yaml",
+            "environment_fact",
+            "project_fact",
+            "normalized_remote_candidate_type:environment_fact->project_fact",
         ),
         (
             "\u5df2\u786e\u8ba4\u672c\u4ed3\u5e93\u683c\u5f0f\u68c0\u67e5"
@@ -1053,6 +2119,8 @@ def test_remote_llm_client_payload_includes_governance_rules(remote_server):
     assert "sensitive data" in system_content
     assert "environment_fact" in system_content
     assert "api key" in " ".join(user_payload["governance_rules"])
+    assert "atomic claim" in " ".join(user_payload["governance_rules"])
+    assert "time_validity" in " ".join(user_payload["governance_rules"])
     assert "Governance rules" in user_payload["instructions"]
 
 
@@ -1274,6 +2342,127 @@ def test_remote_retrieval_fixture_compares_keyword_semantic_and_hybrid(remote_se
     assert any(warning.startswith("hybrid_reduced_false_negatives:") for warning in result.warnings)
 
 
+def test_remote_retrieval_fixture_reuses_embedding_cache(tmp_path, remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+    cache_path = tmp_path / "embedding-cache.jsonl"
+
+    first = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        model="fake-embedding",
+        limit=1,
+        embedding_cache_path=cache_path,
+    )
+    captured_after_first = len(captured)
+    second = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        model="fake-embedding",
+        limit=1,
+        embedding_cache_path=cache_path,
+    )
+
+    assert first.metadata["embedding_cache"]["writes"] == 4
+    assert second.metadata["embedding_cache"]["hits"] == 4
+    assert len(captured) == captured_after_first
+    assert cache_path.exists()
+
+
+def test_remote_retrieval_fixture_prefetches_embeddings_in_parallel(tmp_path, remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, _captured = remote_server
+    lock = Lock()
+    in_flight = 0
+    max_in_flight = 0
+
+    def embedding_handler(payload):
+        nonlocal in_flight, max_in_flight
+        with lock:
+            in_flight += 1
+            max_in_flight = max(max_in_flight, in_flight)
+        try:
+            time.sleep(0.05)
+            return (
+                200,
+                {
+                    "provider": "fake-embedding",
+                    "model": "fake-embedding",
+                    "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+                },
+            )
+        finally:
+            with lock:
+                in_flight -= 1
+
+    routes[("POST", "/embeddings")] = embedding_handler
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+
+    result = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        model="fake-embedding",
+        limit=4,
+        batch_size=1,
+        embedding_cache_path=tmp_path / "parallel-cache.jsonl",
+        case_concurrency=4,
+    )
+
+    assert result.summary.case_count == 4
+    assert result.metadata["case_concurrency"] == 4
+    assert result.metadata["prefetch"]["enabled"] is True
+    assert result.metadata["prefetch"]["case_concurrency"] == 4
+    assert max_in_flight > 1
+
+
+def test_remote_retrieval_fixture_records_embedding_errors_per_case(remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (500, {"error": "embedding down"})
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+
+    result = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        model="fake-embedding",
+        limit=1,
+    )
+
+    assert result.summary.case_count == 1
+    assert result.summary.failed_by_mode["semantic"] == 1
+    assert result.summary.ambiguous_by_mode["semantic"] == 1
+    assert "remote_embedding_error" in result.warnings
+    assert result.items[0].warnings == ["remote_embedding_error"]
+    assert "remote returned HTTP 500" in result.items[0].metadata["remote_error"]
+
+
 def test_remote_llm_client_judges_retrieval_generic(tmp_path, remote_server):
     from memory_system import MemoryItemCreate
 
@@ -1315,6 +2504,147 @@ def test_remote_llm_client_judges_retrieval_generic(tmp_path, remote_server):
     assert result.selected_memory_ids == [memory.id]
     assert result.reason.startswith("The release workflow")
     assert captured[-1]["path"] == "/memory/extract"
+    assert "behavior guidance" in captured[-1]["payload"]["instructions"]
+    assert "user_preference, workflow, and tool_rule" in captured[-1]["payload"]["instructions"]
+
+
+def test_remote_llm_client_recall_prompt_distinguishes_guidance_memory(
+    tmp_path,
+    remote_server,
+):
+    from memory_system import MemoryItemCreate
+
+    base_url, routes, captured = remote_server
+    store = MemoryStore(tmp_path / "memory.sqlite")
+    memory = store.add_memory(
+        MemoryItemCreate(
+            content="The user prefers explanations that start with a concrete example.",
+            memory_type="user_preference",
+            scope="global",
+            subject="explanation style",
+            confidence="confirmed",
+            source_event_ids=["evt_preference"],
+        )
+    )
+
+    def handle_chat(payload):
+        user_payload = json.loads(payload["messages"][1]["content"])
+        assert user_payload["schema"] == "memory_system.remote_recall_judge.v1"
+        assert user_payload["candidates"][0]["memory_type"] == "user_preference"
+        return (
+            200,
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "provider": "fake-llm",
+                                    "decision": "accepted",
+                                    "selected_memory_ids": [memory.id],
+                                    "reason": "The preference should guide the explanation.",
+                                    "risk": "low",
+                                }
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    routes[("POST", "/chat/completions")] = handle_chat
+
+    result = RemoteLLMClient(
+        RemoteAdapterConfig(
+            base_url=base_url,
+            compatibility=OPENAI_COMPATIBILITY,
+            llm_extract_path="/chat/completions",
+        )
+    ).judge_retrieval(
+        query="How should I frame an unfamiliar API?",
+        memories=[memory],
+    )
+
+    system_content = captured[-1]["payload"]["messages"][0]["content"]
+    user_payload = json.loads(captured[-1]["payload"]["messages"][1]["content"])
+    assert result.decision == "accepted"
+    assert result.selected_memory_ids == [memory.id]
+    assert "For factual memories" in system_content
+    assert "user_preference, workflow, and tool_rule" in system_content
+    assert "guide how the agent responds or acts" in system_content
+    assert "behavior guidance" in user_payload["instructions"]
+
+
+def test_remote_llm_client_batch_recall_prompt_distinguishes_guidance_memory(
+    tmp_path,
+    remote_server,
+):
+    from memory_system import MemoryItemCreate
+
+    base_url, routes, captured = remote_server
+    store = MemoryStore(tmp_path / "memory.sqlite")
+    memory = store.add_memory(
+        MemoryItemCreate(
+            content="The release checklist is ruff, pytest, then smoke test.",
+            memory_type="workflow",
+            scope="repo:C:/workspace/demo",
+            subject="release checklist",
+            confidence="confirmed",
+            source_event_ids=["evt_workflow"],
+        )
+    )
+
+    def handle_chat(payload):
+        user_payload = json.loads(payload["messages"][1]["content"])
+        request_id = user_payload["cases"][0]["request_id"]
+        assert user_payload["schema"] == "memory_system.remote_recall_judge_batch.v1"
+        assert user_payload["cases"][0]["candidates"][0]["memory_type"] == "workflow"
+        return (
+            200,
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "results": [
+                                        {
+                                            "request_id": request_id,
+                                            "provider": "fake-llm",
+                                            "decision": "accepted",
+                                            "selected_memory_ids": [memory.id],
+                                            "reason": "The workflow should guide the action.",
+                                            "risk": "low",
+                                        }
+                                    ]
+                                }
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    routes[("POST", "/chat/completions")] = handle_chat
+
+    result = RemoteLLMClient(
+        RemoteAdapterConfig(
+            base_url=base_url,
+            compatibility=OPENAI_COMPATIBILITY,
+            llm_extract_path="/chat/completions",
+        )
+    ).judge_retrieval_batch(
+        [{"request_id": "case-1", "query": "How should I release?", "memories": [memory]}]
+    )
+
+    system_content = captured[-1]["payload"]["messages"][0]["content"]
+    user_payload = json.loads(captured[-1]["payload"]["messages"][1]["content"])
+    assert result["case-1"].decision == "accepted"
+    assert result["case-1"].selected_memory_ids == [memory.id]
+    assert "For factual memories" in system_content
+    assert "user_preference, workflow, and tool_rule" in system_content
+    assert "guide how the agent responds or acts" in system_content
+    assert "behavior guidance" in user_payload["instructions"]
 
 
 def test_remote_retrieval_fixture_can_include_llm_guarded_hybrid(remote_server):
@@ -1374,10 +2704,15 @@ def test_remote_retrieval_fixture_can_include_llm_guarded_hybrid(remote_server):
     assert result.summary.passed_by_mode["llm_guarded_hybrid"] == 50
     assert result.summary.passed_by_mode["selective_llm_guarded_hybrid"] == 50
     assert result.summary.ambiguous_by_mode["llm_guarded_hybrid"] == 0
-    assert result.summary.judge_called_by_mode["selective_llm_guarded_hybrid"] == 0
-    assert result.summary.judge_skipped_by_mode["selective_llm_guarded_hybrid"] == 50
+    assert result.metadata["judge"]["mode"] == "single"
+    assert result.metadata["judge"]["group_size"] == 1
+    assert result.metadata["judge"]["concurrency"] == 1
+    assert result.metadata["judge"]["pending_tasks"] == 51
+    assert result.metadata["judge"]["single_calls"] == 51
+    assert result.summary.judge_called_by_mode["selective_llm_guarded_hybrid"] == 1
+    assert result.summary.judge_skipped_by_mode["selective_llm_guarded_hybrid"] == 49
     assert result.summary.judge_skip_reason_by_mode["selective_llm_guarded_hybrid"] == {
-        "local_guard_confident": 50
+        "local_guard_confident": 49
     }
     judge = result.items[0].judge_by_mode["llm_guarded_hybrid"]
     assert judge.decision == "accepted"
@@ -1388,6 +2723,411 @@ def test_remote_retrieval_fixture_can_include_llm_guarded_hybrid(remote_server):
     assert selective_judge.provider == "local"
     assert selective_judge.metadata["remote_judge_called"] is False
     assert selective_judge.metadata["skip_reason"] == "local_guard_confident"
+
+
+def test_remote_retrieval_fixture_parallelizes_single_llm_judges(tmp_path, remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, _captured = remote_server
+    judge_payloads = []
+    active_judges = 0
+    max_active_judges = 0
+    judge_lock = Lock()
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+
+    def handle_judge(payload):
+        nonlocal active_judges, max_active_judges
+        assert payload["schema"] == "memory_system.remote_recall_judge.v1"
+        with judge_lock:
+            active_judges += 1
+            max_active_judges = max(max_active_judges, active_judges)
+        try:
+            time.sleep(0.05)
+            judge_payloads.append(payload)
+            selected_candidate = next(
+                (
+                    candidate
+                    for candidate in payload["candidates"]
+                    if str(candidate.get("subject", "")).startswith("release SLA")
+                ),
+                payload["candidates"][0],
+            )
+            selected = selected_candidate["memory_id"]
+            return (
+                200,
+                {
+                    "provider": "fake-llm",
+                    "decision": "accepted",
+                    "selected_memory_ids": [selected],
+                    "reason": "The single judge selected the release SLA memory.",
+                    "risk": "low",
+                },
+            )
+        finally:
+            with judge_lock:
+                active_judges -= 1
+
+    routes[("POST", "/memory/extract")] = handle_judge
+    fixture = tmp_path / "single_parallel_retrieval.jsonl"
+    rows = []
+    for index in range(4):
+        rows.append(
+            {
+                "mode": "retrieval",
+                "name": f"single_parallel_judge_{index:03d}",
+                "category": "single_parallel_judge",
+                "search": {
+                    "query": f"What is the SLA before release for service {index}?",
+                    "scopes": ["global"],
+                    "memory_types": ["project_fact"],
+                    "limit": 1,
+                },
+                "expected": {"exact_aliases": [f"single_{index:03d}_target"]},
+                "memories": [
+                    {
+                        "alias": f"single_{index:03d}_target",
+                        "content": f"The release SLA for service {index} is 99.{index} percent.",
+                        "memory_type": "project_fact",
+                        "scope": "global",
+                        "subject": f"release SLA {index}",
+                        "confidence": "confirmed",
+                        "source_event_ids": [f"evt_single_{index:03d}"],
+                    },
+                    {
+                        "alias": f"single_{index:03d}_distractor",
+                        "content": "Console encoding uses UTF-8 when text is garbled.",
+                        "memory_type": "project_fact",
+                        "scope": "global",
+                        "subject": "encoding note",
+                        "confidence": "confirmed",
+                        "source_event_ids": [f"evt_single_other_{index:03d}"],
+                    },
+                ],
+            }
+        )
+    fixture.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    result = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        remote_llm=RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)),
+        include_llm_judge=True,
+        model="fake-embedding",
+        case_concurrency=1,
+        judge_group_size=1,
+        judge_concurrency=4,
+    )
+
+    assert result.summary.case_count == 4
+    assert result.summary.passed_by_mode["llm_guarded_hybrid"] == 4
+    assert result.summary.judge_called_by_mode["llm_guarded_hybrid"] == 4
+    assert result.metadata["judge"]["mode"] == "single"
+    assert result.metadata["judge"]["group_size"] == 1
+    assert result.metadata["judge"]["concurrency"] == 4
+    assert result.metadata["judge"]["pending_tasks"] == 4
+    assert result.metadata["judge"]["single_calls"] == 4
+    assert result.metadata["judge"]["batch_calls"] == 0
+    assert len(judge_payloads) == 4
+    assert max_active_judges > 1
+    judge = result.items[0].judge_by_mode["llm_guarded_hybrid"]
+    assert judge.metadata["request_mode"] == "single"
+    assert judge.metadata["remote_judge_called"] is True
+
+
+def test_remote_retrieval_fixture_batches_selective_llm_judges(tmp_path, remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, _captured = remote_server
+    batch_payloads = []
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+
+    def handle_batch_judge(payload):
+        assert payload["schema"] == "memory_system.remote_recall_judge_batch.v1"
+        batch_payloads.append(payload)
+        results = []
+        for case in payload["cases"]:
+            selected_candidate = next(
+                (
+                    candidate
+                    for candidate in case["candidates"]
+                    if str(candidate.get("subject", "")).startswith("release SLA")
+                ),
+                case["candidates"][0],
+            )
+            selected = selected_candidate["memory_id"]
+            results.append(
+                {
+                    "request_id": case["request_id"],
+                    "provider": "fake-llm",
+                    "decision": "accepted",
+                    "selected_memory_ids": [selected],
+                    "reason": "The batched judge selected the release SLA memory.",
+                    "risk": "low",
+                }
+            )
+        return 200, {"provider": "fake-llm", "results": results}
+
+    routes[("POST", "/memory/extract")] = handle_batch_judge
+    fixture = tmp_path / "batch_retrieval.jsonl"
+    rows = []
+    for index in range(4):
+        rows.append(
+            {
+                "mode": "retrieval",
+                "name": f"batch_judge_{index:03d}",
+                "category": "batch_judge",
+                "search": {
+                    "query": f"What is the SLA before release for service {index}?",
+                    "scopes": ["global"],
+                    "memory_types": ["project_fact"],
+                    "limit": 1,
+                },
+                "expected": {"exact_aliases": [f"batch_{index:03d}_target"]},
+                "memories": [
+                    {
+                        "alias": f"batch_{index:03d}_target",
+                        "content": f"The release SLA for service {index} is 99.{index} percent.",
+                        "memory_type": "project_fact",
+                        "scope": "global",
+                        "subject": f"release SLA {index}",
+                        "confidence": "confirmed",
+                        "source_event_ids": [f"evt_batch_{index:03d}"],
+                    },
+                    {
+                        "alias": f"batch_{index:03d}_distractor",
+                        "content": "Console encoding uses UTF-8 when text is garbled.",
+                        "memory_type": "project_fact",
+                        "scope": "global",
+                        "subject": "encoding note",
+                        "confidence": "confirmed",
+                        "source_event_ids": [f"evt_batch_other_{index:03d}"],
+                    },
+                ],
+            }
+        )
+    fixture.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    result = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        remote_llm=RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)),
+        include_selective_llm_judge=True,
+        model="fake-embedding",
+        embedding_cache_path=tmp_path / "batch-cache.jsonl",
+        case_concurrency=2,
+        judge_group_size=2,
+        judge_concurrency=2,
+    )
+
+    assert result.summary.case_count == 4
+    assert result.summary.passed_by_mode["selective_llm_guarded_hybrid"] == 4
+    assert result.summary.judge_called_by_mode["selective_llm_guarded_hybrid"] == 4
+    assert result.metadata["judge"]["mode"] == "batch"
+    assert result.metadata["judge"]["group_size"] == 2
+    assert result.metadata["judge"]["concurrency"] == 2
+    assert result.metadata["judge"]["pending_tasks"] == 4
+    assert result.metadata["judge"]["batch_count"] == 2
+    assert result.metadata["judge"]["batch_calls"] == 2
+    assert result.metadata["judge"]["fallback_single_calls"] == 0
+    assert len(batch_payloads) == 2
+    assert {len(payload["cases"]) for payload in batch_payloads} == {2}
+    judge = result.items[0].judge_by_mode["selective_llm_guarded_hybrid"]
+    assert judge.metadata["request_mode"] == "batch"
+    assert judge.metadata["remote_judge_called"] is True
+
+
+def test_benchmark_remote_retrieval_script_writes_summary(tmp_path, remote_server):
+    from tools.benchmark_remote_retrieval import parse_args, run_benchmark
+
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+    routes[("POST", "/memory/extract")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-llm",
+            "decision": "accepted",
+            "selected_memory_ids": [
+                next(
+                    (
+                        candidate
+                        for candidate in payload.get("candidates", [])
+                        if candidate.get("local_decision") == "accepted"
+                    ),
+                    payload["candidates"][0] if payload.get("candidates") else {},
+                ).get("memory_id", "missing")
+                if payload.get("candidates")
+                else "missing"
+            ],
+            "reason": "Select the top deterministic retrieval candidate.",
+            "risk": "low",
+        },
+    )
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+    args = parse_args(
+        [
+            "--fixture",
+            str(fixture),
+            "--limit",
+            "1",
+            "--embedding-cache",
+            str(tmp_path / "bench-cache.jsonl"),
+            "--output-dir",
+            str(tmp_path / "bench"),
+            "--case-concurrency",
+            "1",
+            "--config",
+            "baseline",
+            "--config",
+            "single_seq",
+        ]
+    )
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", base_url)
+    try:
+        summary = run_benchmark(args)
+    finally:
+        monkeypatch.undo()
+
+    assert [row["name"] for row in summary["rows"]] == ["baseline", "single_seq"]
+    assert (tmp_path / "bench" / "baseline.json").exists()
+    assert (tmp_path / "bench" / "single_seq.json").exists()
+    assert (tmp_path / "bench" / "summary.json").exists()
+    assert summary["rows"][0]["target_mode"] == "guarded_hybrid"
+    assert summary["rows"][1]["target_mode"] == "selective_llm_guarded_hybrid"
+    assert "failures" in summary
+
+
+def test_benchmark_remote_retrieval_script_samples_seeded_cases(tmp_path, remote_server):
+    from tools.benchmark_remote_retrieval import parse_args, run_benchmark
+
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+    base_args = [
+        "--fixture",
+        str(fixture),
+        "--sample-size",
+        "3",
+        "--sample-seed",
+        "17",
+        "--embedding-cache",
+        str(tmp_path / "sample-cache.jsonl"),
+        "--case-concurrency",
+        "1",
+        "--config",
+        "baseline",
+    ]
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", base_url)
+    try:
+        first = run_benchmark(
+            parse_args([*base_args, "--output-dir", str(tmp_path / "sample-a")])
+        )
+        run_benchmark(parse_args([*base_args, "--output-dir", str(tmp_path / "sample-b")]))
+    finally:
+        monkeypatch.undo()
+
+    first_report = json.loads(
+        (tmp_path / "sample-a" / "baseline.json").read_text(encoding="utf-8")
+    )
+    second_report = json.loads(
+        (tmp_path / "sample-b" / "baseline.json").read_text(encoding="utf-8")
+    )
+    first_names = first_report["metadata"]["selection"]["case_names"]
+    second_names = second_report["metadata"]["selection"]["case_names"]
+    assert first["limit"] is None
+    assert first["sample_size"] == 3
+    assert first["sample_seed"] == 17
+    assert first["rows"][0]["passed"] + first["rows"][0]["failed"] == 3
+    assert first_names == second_names
+    assert len(first_names) == 3
+    assert first_names != [
+        "semantic_release_000",
+        "semantic_release_001",
+        "semantic_release_002",
+    ]
+
+
+def test_remote_retrieval_fixture_marks_judge_errors_ambiguous(remote_server):
+    from memory_system.remote_evaluation import evaluate_remote_retrieval_fixture
+
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [_semantic_fixture_vector(text) for text in payload["texts"]],
+        },
+    )
+    routes[("POST", "/memory/extract")] = lambda payload: (200, [])
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "golden_cases"
+        / "semantic_retrieval.jsonl"
+    )
+
+    result = evaluate_remote_retrieval_fixture(
+        fixture,
+        RemoteEmbeddingClient(RemoteAdapterConfig(base_url=base_url)),
+        remote_llm=RemoteLLMClient(RemoteAdapterConfig(base_url=base_url)),
+        include_llm_judge=True,
+        model="fake-embedding",
+        limit=1,
+    )
+
+    assert result.summary.case_count == 1
+    assert result.summary.ambiguous_by_mode["llm_guarded_hybrid"] == 3
+    judge = result.items[0].judge_by_mode["llm_guarded_hybrid"]
+    assert judge.decision == "ambiguous"
+    assert "remote_recall_judge_error" in judge.warnings
 
 
 def test_semantic_retrieval_fixture_shape():
@@ -1934,6 +3674,73 @@ def test_api_remote_selective_llm_guarded_hybrid_skips_confident_local(
     assert [item["path"] for item in captured].count("/memory/extract") == 0
 
 
+def test_api_remote_selective_llm_guarded_hybrid_calls_on_private_fact_query(
+    tmp_path,
+    monkeypatch,
+    remote_server,
+):
+    from fastapi.testclient import TestClient
+
+    from memory_system import MemoryItemCreate
+
+    base_url, routes, captured = remote_server
+    routes[("POST", "/embeddings")] = lambda payload: (
+        200,
+        {
+            "provider": "fake-embedding",
+            "model": "fake-embedding",
+            "vectors": [[1.0, 0.0] for _text in payload["texts"]],
+        },
+    )
+
+    def handle_judge(payload):
+        assert "exact requested safe fact" in payload["instructions"]
+        return (
+            200,
+            {
+                "provider": "fake-llm",
+                "decision": "rejected",
+                "selected_memory_ids": [],
+                "reason": "The candidate is about a passport location, not a passport number.",
+                "risk": "medium",
+            },
+        )
+
+    routes[("POST", "/memory/extract")] = handle_judge
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", base_url)
+    client = TestClient(create_app(tmp_path / "memory.sqlite"))
+    store = client.app.state.runtime.memories
+    memory = store.add_memory(
+        MemoryItemCreate(
+            content="The user said Maya keeps her passport in the blue folder.",
+            memory_type="project_fact",
+            scope="global",
+            subject="passport location",
+            confidence="confirmed",
+            source_event_ids=["evt_passport"],
+        )
+    )
+    store.upsert_memory_embedding(memory.id, vector=[1.0, 0.0], model="fake-embedding")
+
+    response = client.post(
+        "/memories/search/remote-selective-llm-guarded-hybrid",
+        json={
+            "query": "What is the user's passport number?",
+            "scopes": ["global"],
+            "embedding_model": "fake-embedding",
+            "limit": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["memories"] == []
+    assert payload["judge"]["provider"] == "fake-llm"
+    assert payload["judge"]["metadata"]["remote_judge_called"] is True
+    assert payload["judge"]["metadata"]["call_reason"] == "private_fact_query"
+    assert [item["path"] for item in captured].count("/memory/extract") == 1
+
+
 def test_api_remote_selective_llm_guarded_hybrid_calls_on_concrete_fact_risk(
     tmp_path,
     monkeypatch,
@@ -2169,6 +3976,106 @@ def test_api_remote_import_creates_pending_candidates_only(tmp_path, monkeypatch
     assert decision["decision"] == "write"
 
 
+def test_api_remote_route_splits_long_term_and_session(tmp_path, monkeypatch, remote_server):
+    from fastapi.testclient import TestClient
+
+    base_url, routes, _captured = remote_server
+
+    def route(payload):
+        event_ids = [event["id"] for event in payload["events"]]
+        return (
+            200,
+            {
+                "provider": "fake-route",
+                "items": [
+                    {
+                        "route": "long_term",
+                        "content": "API route prefers concise answers.",
+                        "memory_type": "user_preference",
+                        "subject": "api route preference",
+                        "source_event_ids": [event_ids[0]],
+                        "reason": "Stable future response preference.",
+                        "confidence": "confirmed",
+                        "evidence_type": "direct_user_statement",
+                        "time_validity": "persistent",
+                        "reuse_cases": ["future_responses"],
+                        "scores": {"long_term": 0.8, "evidence": 1.0, "reuse": 0.8},
+                    },
+                    {
+                        "route": "session",
+                        "content": "For this API task, do not commit yet.",
+                        "session_memory_type": "temporary_rule",
+                        "subject": "current API commit rule",
+                        "source_event_ids": [event_ids[1]],
+                        "reason": "Temporary current-task constraint.",
+                        "time_validity": "session",
+                    },
+                    {
+                        "route": "ignore",
+                        "content": "ok",
+                        "source_event_ids": [event_ids[2]],
+                        "reason": "Common confirmation.",
+                    },
+                ],
+            },
+        )
+
+    routes[("POST", "/memory/extract")] = route
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", base_url)
+    client = TestClient(create_app(tmp_path / "memory.sqlite"))
+    events = [
+        client.post(
+            "/events",
+            json={
+                "event_type": "user_message",
+                "content": "For future API answers, be concise.",
+                "source": "conversation",
+                "scope": "global",
+            },
+        ).json(),
+        client.post(
+            "/events",
+            json={
+                "event_type": "user_message",
+                "content": "For this API task, do not commit yet.",
+                "source": "conversation",
+                "scope": "global",
+            },
+        ).json(),
+        client.post(
+            "/events",
+            json={
+                "event_type": "user_message",
+                "content": "ok",
+                "source": "conversation",
+                "scope": "global",
+            },
+        ).json(),
+    ]
+
+    response = client.post(
+        "/remote/route",
+        json={"event_ids": [event["id"] for event in events], "session_id": "api-session"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "fake-route"
+    assert len(payload["long_term"]) == 1
+    assert len(payload["session"]) == 1
+    assert len(payload["ignored"]) == 1
+    assert payload["long_term"][0]["decision"]["decision"] == "write"
+    candidate = payload["long_term"][0]["candidate"]
+    assert candidate["status"] == "pending"
+    assert client.app.state.runtime.memories.get_candidate(candidate["id"]).subject == (
+        "api route preference"
+    )
+    assert payload["session"][0]["session_id"] == "api-session"
+    assert payload["session"][0]["memory_type"] == "temporary_rule"
+    assert payload["metadata"]["auto_committed"] is False
+    assert payload["metadata"]["session_persisted"] is False
+
+
 def test_api_remote_candidate_evaluation_is_read_only(
     tmp_path,
     monkeypatch,
@@ -2348,6 +4255,134 @@ def test_cli_remote_import_json_persists_candidates(
     assert MemoryStore(db_path).get_candidate(candidate["id"]).subject == "cli remote import"
 
 
+def test_cli_remote_route_json_splits_and_evaluates_memory_routes(
+    tmp_path,
+    monkeypatch,
+    capsys,
+    remote_server,
+):
+    from memory_system.cli import main
+
+    base_url, routes, _captured = remote_server
+
+    def route(payload):
+        event_ids = [event["id"] for event in payload["events"]]
+        return (
+            200,
+            {
+                "provider": "fake-route",
+                "items": [
+                    {
+                        "route": "long_term",
+                        "content": "CLI route prefers concise technical answers.",
+                        "memory_type": "user_preference",
+                        "subject": "cli route preference",
+                        "source_event_ids": [event_ids[0]],
+                        "reason": "Stable future response preference.",
+                        "confidence": "confirmed",
+                        "evidence_type": "direct_user_statement",
+                        "time_validity": "persistent",
+                        "reuse_cases": ["future_responses"],
+                        "scores": {"long_term": 0.8, "evidence": 1.0, "reuse": 0.8},
+                    },
+                    {
+                        "route": "session",
+                        "content": "For this task, do not commit yet.",
+                        "session_memory_type": "temporary_rule",
+                        "subject": "current commit rule",
+                        "source_event_ids": [event_ids[1]],
+                        "reason": "Temporary current-task constraint.",
+                        "time_validity": "session",
+                    },
+                    {
+                        "route": "ignore",
+                        "content": "ok",
+                        "source_event_ids": [event_ids[2]],
+                        "reason": "Common confirmation.",
+                    },
+                    {
+                        "route": "reject",
+                        "content": "Unsafe item omitted.",
+                        "source_event_ids": [event_ids[3]],
+                        "reason": "Rejected by route judge.",
+                    },
+                ],
+            },
+        )
+
+    routes[("POST", "/memory/extract")] = route
+    monkeypatch.setenv("MEMORY_REMOTE_BASE_URL", base_url)
+    db_path = tmp_path / "memory.sqlite"
+    event_log = EventLog(db_path)
+    events = [
+        event_log.record_event(
+            EventCreate(
+                event_type="user_message",
+                content="For future technical answers, be concise.",
+                source="conversation",
+                scope="global",
+            )
+        ),
+        event_log.record_event(
+            EventCreate(
+                event_type="user_message",
+                content="For this task, do not commit yet.",
+                source="conversation",
+                scope="global",
+            )
+        ),
+        event_log.record_event(
+            EventCreate(
+                event_type="user_message",
+                content="ok",
+                source="conversation",
+                scope="global",
+            )
+        ),
+        event_log.record_event(
+            EventCreate(
+                event_type="user_message",
+                content="reject this sample",
+                source="conversation",
+                scope="global",
+            )
+        ),
+    ]
+
+    result = main(
+        [
+            "--db",
+            str(db_path),
+            "remote",
+            "route",
+            "--event-id",
+            events[0].id,
+            "--event-id",
+            events[1].id,
+            "--event-id",
+            events[2].id,
+            "--event-id",
+            events[3].id,
+            "--json",
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["provider"] == "fake-route"
+    assert len(payload["long_term"]) == 1
+    assert len(payload["session"]) == 1
+    assert len(payload["ignored"]) == 1
+    assert len(payload["rejected"]) == 1
+    assert payload["long_term"][0]["decision"]["decision"] == "write"
+    candidate = payload["long_term"][0]["candidate"]
+    assert candidate["status"] == "pending"
+    assert MemoryStore(db_path).get_candidate(candidate["id"]).subject == "cli route preference"
+    assert payload["session"][0]["memory_type"] == "temporary_rule"
+    assert payload["metadata"]["auto_committed"] is False
+    assert payload["metadata"]["session_persisted"] is False
+
+
 def test_cli_remote_evaluate_json_is_read_only(
     tmp_path,
     monkeypatch,
@@ -2470,6 +4505,12 @@ def test_cli_remote_embed_backfill_and_evaluate_retrieval_json(
             str(fixture),
             "--model",
             "fake-embedding",
+            "--embedding-cache",
+            str(tmp_path / "retrieval-embedding-cache.jsonl"),
+            "--report-path",
+            str(tmp_path / "retrieval-report.json"),
+            "--case-concurrency",
+            "2",
             "--json",
         ]
     )
@@ -2479,6 +4520,12 @@ def test_cli_remote_embed_backfill_and_evaluate_retrieval_json(
     assert evaluation["summary"]["failed_by_mode"]["keyword"] > 0
     assert evaluation["summary"]["passed_by_mode"]["hybrid"] == 50
     assert evaluation["summary"]["passed_by_mode"]["guarded_hybrid"] == 50
+    assert evaluation["metadata"]["embedding_cache"]["enabled"] is True
+    assert evaluation["metadata"]["embedding_cache"]["writes"] > 0
+    assert evaluation["metadata"]["case_concurrency"] == 2
+    report_payload = json.loads((tmp_path / "retrieval-report.json").read_text(encoding="utf-8"))
+    assert report_payload["summary"]["case_count"] == 50
+    assert report_payload["metadata"]["embedding_cache"]["enabled"] is True
 
     routes[("POST", "/memory/extract")] = lambda payload: (
         200,
@@ -2543,8 +4590,8 @@ def test_cli_remote_embed_backfill_and_evaluate_retrieval_json(
     assert result == 0
     evaluation = json.loads(capsys.readouterr().out)
     assert evaluation["summary"]["passed_by_mode"]["selective_llm_guarded_hybrid"] == 50
-    assert evaluation["summary"]["judge_called_by_mode"]["selective_llm_guarded_hybrid"] == 0
-    assert evaluation["summary"]["judge_skipped_by_mode"]["selective_llm_guarded_hybrid"] == 50
+    assert evaluation["summary"]["judge_called_by_mode"]["selective_llm_guarded_hybrid"] == 1
+    assert evaluation["summary"]["judge_skipped_by_mode"]["selective_llm_guarded_hybrid"] == 49
     judge = evaluation["items"][0]["judge_by_mode"]["selective_llm_guarded_hybrid"]
     assert judge["provider"] == "local"
     assert judge["metadata"]["skip_reason"] == "local_guard_confident"
