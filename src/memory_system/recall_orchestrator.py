@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from memory_system.context_composer import compose_context
 from memory_system.graph_recall import graph_recall_for_task
 from memory_system.memory_store import MemoryStore
-from memory_system.remote import RemoteEmbeddingClient, RemoteLLMClient
+from memory_system.remote import RemoteAdapterError, RemoteEmbeddingClient, RemoteLLMClient
 from memory_system.remote_evaluation import (
     remote_guarded_hybrid_search,
     remote_selective_llm_guarded_hybrid_search,
@@ -19,7 +19,9 @@ from memory_system.schemas import (
     RecallStrategy,
     RetrievalLogCreate,
     SearchMemoryInput,
+    SessionMemoryItemRead,
 )
+from memory_system.session_memory import SessionMemoryStore, compose_context_with_session
 from memory_system.task_recall import RecallPlanner
 
 
@@ -57,6 +59,10 @@ def orchestrate_recall(
     guard_ambiguity_margin: float = 0.03,
     selective_min_similarity: float = 0.20,
     selective_ambiguity_margin: float = 0.03,
+    session_store: SessionMemoryStore | None = None,
+    session_id: str = "default",
+    session_limit: int = 5,
+    session_scopes: list[str] | None = None,
 ) -> OrchestratedRecallResult:
     cleaned_task = task.strip()
     if not cleaned_task:
@@ -65,6 +71,8 @@ def orchestrate_recall(
         raise ValueError("token_budget must be greater than zero")
     if limit < 1:
         raise ValueError("limit must be greater than zero")
+    if session_limit < 0:
+        raise ValueError("session_limit must not be negative")
 
     if not _memory_needed(cleaned_task):
         context = compose_context(cleaned_task, [], token_budget=token_budget)
@@ -96,16 +104,29 @@ def orchestrate_recall(
             metadata={"token_budget": token_budget},
         )
 
-    active_planner = planner or RecallPlanner()
-    plan = active_planner.plan(cleaned_task, scope=scope, limit_per_query=max(1, limit))
+    plan = _plan_recall(
+        cleaned_task,
+        scope=scope,
+        limit_per_query=max(1, limit),
+        planner=planner,
+        remote_llm=remote_llm,
+    )
     if memory_types:
         plan = plan.model_copy(update={"memory_types": _unique(memory_types)})
 
     selected_strategy = _select_strategy(
         strategy,
+        strategy_hint=plan.strategy_hint,
+        needs_llm_judge=plan.needs_llm_judge,
         remote_embedding=remote_embedding,
         remote_llm=remote_llm,
     )
+    effective_include_graph = include_graph and plan.include_graph
+    effective_session_limit = session_limit
+    session_planner_soft_cap = False
+    if session_store is not None and session_limit > 0 and not plan.include_session:
+        effective_session_limit = min(session_limit, 1)
+        session_planner_soft_cap = True
     steps: list[OrchestratedRecallStep] = []
     candidate_memories: list[MemoryItemRead] = []
 
@@ -146,7 +167,7 @@ def orchestrate_recall(
     else:
         raise ValueError(f"unsupported recall strategy: {selected_strategy}")
 
-    if include_graph:
+    if effective_include_graph:
         graph_memories, graph_step = _graph_recall(
             store,
             cleaned_task,
@@ -158,15 +179,44 @@ def orchestrate_recall(
         candidate_memories = _merge_memories(candidate_memories, graph_memories)
 
     final_memories = candidate_memories[:limit]
-    context = compose_context(cleaned_task, final_memories, token_budget=token_budget)
+    session_items: list[SessionMemoryItemRead] = []
+    if session_store is not None and effective_session_limit > 0:
+        session_scope_filter = session_scopes if session_scopes is not None else plan.scopes
+        session_items, session_step = _session_recall(
+            session_store,
+            cleaned_task,
+            session_id=session_id,
+            scopes=session_scope_filter,
+            limit=effective_session_limit,
+        )
+        steps.append(session_step)
+    context = (
+        compose_context_with_session(
+            cleaned_task,
+            session_items,
+            final_memories,
+            token_budget=token_budget,
+        )
+        if session_items
+        else compose_context(cleaned_task, final_memories, token_budget=token_budget)
+    )
     context_ids = set(context.memory_ids)
+    session_context_ids = _split_csv(context.metadata.get("session_memory_ids", ""))
     retrieved_ids = _unique(
-        memory_id for step in steps for memory_id in step.retrieved_memory_ids
+        memory_id
+        for step in steps
+        if step.name != "session_recall"
+        for memory_id in step.retrieved_memory_ids
     )
     accepted_ids = [memory.id for memory in final_memories]
     skipped_ids = _unique(
         [
-            *[memory_id for step in steps for memory_id in step.skipped_memory_ids],
+            *[
+                memory_id
+                for step in steps
+                if step.name != "session_recall"
+                for memory_id in step.skipped_memory_ids
+            ],
             *[memory.id for memory in final_memories if memory.id not in context_ids],
         ]
     )
@@ -176,7 +226,7 @@ def orchestrate_recall(
             *context.warnings,
         ]
     )
-    if not final_memories:
+    if not final_memories and not session_items:
         warnings.append("no_memories_accepted")
 
     store.record_retrieval_log(
@@ -197,9 +247,26 @@ def orchestrate_recall(
                 "query_terms": plan.query_terms,
                 "memory_types": plan.memory_types,
                 "scopes": plan.scopes,
+                "planner_source": plan.planner_source,
+                "planner_facets": plan.facets,
+                "planner_identifiers": plan.identifiers,
+                "planner_constraints": plan.constraints,
+                "planner_strategy_hint": plan.strategy_hint,
+                "planner_include_graph": plan.include_graph,
+                "planner_include_session": plan.include_session,
+                "planner_needs_llm_judge": plan.needs_llm_judge,
+                "planner_confidence": plan.confidence,
+                "planner_warnings": plan.planner_warnings,
                 "include_graph": include_graph,
+                "effective_include_graph": effective_include_graph,
                 "token_budget": token_budget,
                 "limit": limit,
+                "session_id": session_id,
+                "session_limit": session_limit,
+                "effective_session_limit": effective_session_limit,
+                "session_planner_soft_cap": session_planner_soft_cap,
+                "session_scopes": session_scopes or [],
+                "session_memory_ids": ",".join(session_context_ids),
                 "steps": [step.model_dump() for step in steps],
             },
         )
@@ -220,6 +287,14 @@ def orchestrate_recall(
             "accepted_memory_ids": accepted_ids,
             "used_memory_ids": context.memory_ids,
             "skipped_memory_ids": skipped_ids,
+            "session_memory_ids": session_context_ids,
+            "planner_source": plan.planner_source,
+            "planner_strategy_hint": plan.strategy_hint,
+            "planner_confidence": plan.confidence,
+            "planner_warnings": plan.planner_warnings,
+            "effective_include_graph": effective_include_graph,
+            "effective_session_limit": effective_session_limit,
+            "session_planner_soft_cap": session_planner_soft_cap,
             "token_budget": token_budget,
             "limit": limit,
         },
@@ -234,9 +309,46 @@ def _clean_scope(scope: str | None) -> str | None:
     return scope.strip() if scope and scope.strip() else None
 
 
+def _plan_recall(
+    task: str,
+    *,
+    scope: str | None,
+    limit_per_query: int,
+    planner: RecallPlanner | None,
+    remote_llm: RemoteLLMClient | None,
+) -> RecallPlan:
+    fallback_planner = planner or RecallPlanner()
+    if remote_llm is not None:
+        try:
+            return remote_llm.plan_recall(
+                task=task,
+                scope=scope,
+                limit_per_query=limit_per_query,
+            )
+        except (AttributeError, RemoteAdapterError, ValueError) as exc:
+            local_plan = fallback_planner.plan(
+                task,
+                scope=scope,
+                limit_per_query=limit_per_query,
+            )
+            return local_plan.model_copy(
+                update={
+                    "planner_source": "fallback",
+                    "strategy_hint": "auto",
+                    "planner_warnings": [
+                        *local_plan.planner_warnings,
+                        f"remote_planner_failed:{type(exc).__name__}",
+                    ],
+                }
+            )
+    return fallback_planner.plan(task, scope=scope, limit_per_query=limit_per_query)
+
+
 def _select_strategy(
     strategy: RecallStrategy,
     *,
+    strategy_hint: RecallStrategy,
+    needs_llm_judge: bool,
     remote_embedding: RemoteEmbeddingClient | None,
     remote_llm: RemoteLLMClient | None,
 ) -> str:
@@ -246,6 +358,16 @@ def _select_strategy(
         if strategy == "selective_llm_guarded_hybrid" and remote_llm is None:
             raise ValueError("selective_llm_guarded_hybrid requires remote_llm")
         return strategy
+    if strategy_hint == "selective_llm_guarded_hybrid" or needs_llm_judge:
+        if remote_embedding is not None and remote_llm is not None:
+            return "selective_llm_guarded_hybrid"
+        if remote_embedding is not None:
+            return "guarded_hybrid"
+        return "keyword"
+    if strategy_hint == "guarded_hybrid":
+        return "guarded_hybrid" if remote_embedding is not None else "keyword"
+    if strategy_hint == "keyword":
+        return "keyword"
     if remote_embedding is not None and remote_llm is not None:
         return "selective_llm_guarded_hybrid"
     if remote_embedding is not None:
@@ -290,6 +412,35 @@ def _keyword_recall(
             "query_terms": plan.query_terms,
             "memory_types": plan.memory_types,
             "scopes": plan.scopes,
+        },
+    )
+
+
+def _session_recall(
+    session_store: SessionMemoryStore,
+    task: str,
+    *,
+    session_id: str,
+    scopes: list[str],
+    limit: int,
+) -> tuple[list[SessionMemoryItemRead], OrchestratedRecallStep]:
+    session_items = session_store.search(
+        task,
+        session_id=session_id,
+        scopes=scopes,
+        limit=limit,
+    )
+    session_ids = [item.id for item in session_items]
+    return session_items, OrchestratedRecallStep(
+        name="session_recall",
+        strategy="session",
+        retrieved_memory_ids=session_ids,
+        accepted_memory_ids=session_ids,
+        metadata={
+            "session_id": session_id,
+            "scopes": scopes,
+            "limit": limit,
+            "count": len(session_items),
         },
     )
 
@@ -453,3 +604,9 @@ def _unique(values: Iterable[str]) -> list[str]:
             seen.add(value)
             result.append(value)
     return result
+
+
+def _split_csv(value: str) -> list[str]:
+    if not value:
+        return []
+    return [part.strip() for part in value.split(",") if part.strip()]

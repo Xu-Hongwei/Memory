@@ -34,7 +34,11 @@ from memory_system.remote_evaluation import (
     remote_selective_llm_guarded_hybrid_search,
 )
 from memory_system.recall_orchestrator import orchestrate_recall
-from memory_system.session_memory import SessionMemoryStore, session_item_from_route_item
+from memory_system.session_memory import (
+    SessionMemoryStore,
+    compose_context_with_session,
+    session_item_from_route_item,
+)
 from memory_system.task_recall import recall_for_task
 from memory_system.schemas import (
     CandidateStatus,
@@ -80,6 +84,7 @@ from memory_system.schemas import (
     RetrievalLogRead,
     RetrievalSource,
     SearchMemoryInput,
+    TaskBoundaryDecision,
     TaskRecallResult,
 )
 
@@ -138,6 +143,10 @@ class ContextComposeRequest(BaseModel):
     task: str
     memory_ids: list[str] = Field(default_factory=list)
     token_budget: int = 2000
+    include_session: bool = True
+    session_id: str = "default"
+    session_limit: int = Field(default=5, ge=0)
+    session_scopes: list[str] = Field(default_factory=list)
 
 
 class TaskRecallRequest(BaseModel):
@@ -145,6 +154,9 @@ class TaskRecallRequest(BaseModel):
     scope: str | None = None
     token_budget: int = 2000
     limit_per_query: int = 5
+    include_session: bool = True
+    session_id: str = "default"
+    session_limit: int = Field(default=5, ge=0)
 
 
 class GraphRecallRequest(BaseModel):
@@ -163,6 +175,11 @@ class OrchestratedRecallRequest(BaseModel):
     limit: int = Field(default=10, ge=1)
     memory_types: list[MemoryType] = Field(default_factory=list)
     include_graph: bool = True
+    include_session: bool = True
+    session_id: str = "default"
+    session_limit: int = Field(default=5, ge=0)
+    session_scopes: list[str] = Field(default_factory=list)
+    use_remote_planner: bool = True
     use_remote: bool = False
     use_llm_judge: bool = True
     model: str | None = None
@@ -198,6 +215,18 @@ class RemoteRouteRequest(BaseModel):
     event_ids: list[str] = Field(default_factory=list)
     recent_event_ids: list[str] = Field(default_factory=list)
     session_id: str = "default"
+    current_task_state: dict[str, Any] = Field(default_factory=dict)
+    include_session_memories: bool = True
+    instructions: str | None = None
+
+
+class SessionCloseoutRequest(BaseModel):
+    session_id: str = "default"
+    task_boundary: TaskBoundaryDecision | None = None
+    current_task_state: dict[str, Any] = Field(default_factory=dict)
+    recent_event_ids: list[str] = Field(default_factory=list)
+    apply: bool = True
+    create_candidates: bool = True
     instructions: str | None = None
 
 
@@ -242,6 +271,7 @@ class MemoryRuntime:
     def __init__(self, db_path: str | Path) -> None:
         self.events = EventLog(db_path)
         self.memories = MemoryStore(db_path)
+        self.sessions = SessionMemoryStore()
         self.remote_config = RemoteAdapterConfig.llm_from_env()
         self.remote_embedding_config = RemoteAdapterConfig.embedding_from_env()
 
@@ -368,10 +398,21 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 raise HTTPException(status_code=404, detail=f"recent event not found: {event_id}")
             recent_events.append(event)
 
+        active_session_memories: list[dict[str, Any]] = []
+        if request.include_session_memories:
+            active_session_memories = [
+                item.model_dump(mode="json")
+                for item in app.state.runtime.sessions.list_items(
+                    session_id=request.session_id,
+                )
+            ]
+
         try:
             routed = app.state.runtime.remote_llm().route_memories(
                 events,
                 recent_events=recent_events,
+                current_task_state=request.current_task_state,
+                active_session_memories=active_session_memories,
                 instructions=request.instructions,
             )
         except RemoteAdapterNotConfiguredError as exc:
@@ -380,7 +421,6 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
 
         event_by_id = {event.id: event for event in [*events, *recent_events]}
-        session_store = SessionMemoryStore()
         long_term: list[dict[str, Any]] = []
         session_memories: list[dict[str, Any]] = []
         ignored: list[dict[str, Any]] = []
@@ -425,7 +465,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                         }
                     )
                     continue
-                stored_session = session_store.add_item(session_item)
+                stored_session = app.state.runtime.sessions.add_item(session_item)
                 session_memories.append(stored_session.model_dump(mode="json"))
                 continue
 
@@ -443,6 +483,11 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             "ignored": ignored,
             "rejected": rejected,
             "ask_user": ask_user,
+            "task_boundary": (
+                routed.task_boundary.model_dump(mode="json")
+                if routed.task_boundary is not None
+                else None
+            ),
             "warnings": routed.warnings,
             "metadata": {
                 **routed.metadata,
@@ -450,7 +495,82 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 "recent_event_ids": [event.id for event in recent_events],
                 "source": "remote_memory_route",
                 "auto_committed": False,
-                "session_persisted": False,
+                "session_persisted": True,
+                "session_id": request.session_id,
+                "active_session_memory_count": len(active_session_memories),
+                "task_boundary_observed": routed.task_boundary is not None,
+            },
+        }
+
+    @app.post("/session/closeout")
+    def closeout_session_memory(request: SessionCloseoutRequest) -> dict[str, Any]:
+        session_items = app.state.runtime.sessions.list_items(session_id=request.session_id)
+        recent_events = []
+        for event_id in request.recent_event_ids:
+            event = app.state.runtime.events.get_event(event_id)
+            if event is None:
+                raise HTTPException(status_code=404, detail=f"recent event not found: {event_id}")
+            recent_events.append(event)
+
+        try:
+            closeout = app.state.runtime.remote_llm().closeout_session_memories(
+                session_id=request.session_id,
+                session_memories=session_items,
+                task_boundary=request.task_boundary,
+                current_task_state=request.current_task_state,
+                recent_events=recent_events,
+                instructions=request.instructions,
+            )
+        except RemoteAdapterNotConfiguredError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except RemoteAdapterError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        promoted_candidates: list[dict[str, Any]] = []
+        if request.apply and request.create_candidates:
+            for decision in closeout.decisions:
+                if decision.action != "promote_candidate" or decision.candidate is None:
+                    continue
+                stored_candidate = app.state.runtime.memories.create_candidate(decision.candidate)
+                policy = app.state.runtime.memories.evaluate_candidate(stored_candidate.id)
+                promoted_candidates.append(
+                    {
+                        "session_memory_id": decision.session_memory_id,
+                        "candidate": stored_candidate.model_dump(mode="json"),
+                        "decision": policy.model_dump(mode="json"),
+                    }
+                )
+
+        dismissed = []
+        if request.apply:
+            dismissed = app.state.runtime.sessions.apply_closeout_decisions(closeout.decisions)
+
+        remaining = app.state.runtime.sessions.list_items(session_id=request.session_id)
+        return {
+            "provider": closeout.provider,
+            "session_id": request.session_id,
+            "task_summary": closeout.task_summary,
+            "task_boundary": (
+                closeout.task_boundary.model_dump(mode="json")
+                if closeout.task_boundary is not None
+                else None
+            ),
+            "decisions": [
+                decision.model_dump(mode="json") for decision in closeout.decisions
+            ],
+            "promoted_candidates": promoted_candidates,
+            "dismissed_session": [item.model_dump(mode="json") for item in dismissed],
+            "remaining_session": [item.model_dump(mode="json") for item in remaining],
+            "warnings": closeout.warnings,
+            "metadata": {
+                **closeout.metadata,
+                "source": "session_closeout",
+                "session_id": request.session_id,
+                "applied": request.apply,
+                "create_candidates": request.create_candidates,
+                "input_session_memory_count": len(session_items),
+                "dismissed_count": len(dismissed),
+                "promoted_candidate_count": len(promoted_candidates),
             },
         }
 
@@ -1148,10 +1268,30 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             if memory is None:
                 raise HTTPException(status_code=404, detail=f"memory not found: {memory_id}")
             memories.append(memory)
-        block = compose_context(
-            request.task,
-            memories,
-            token_budget=request.token_budget,
+        session_items = []
+        if request.include_session and request.session_limit > 0:
+            memory_scopes = {memory.scope for memory in memories}
+            session_scopes = request.session_scopes or list(memory_scopes)
+            session_items = app.state.runtime.sessions.search(
+                request.task,
+                session_id=request.session_id,
+                scopes=session_scopes,
+                limit=request.session_limit,
+            )
+
+        block = (
+            compose_context_with_session(
+                request.task,
+                session_items,
+                memories,
+                token_budget=request.token_budget,
+            )
+            if session_items
+            else compose_context(
+                request.task,
+                memories,
+                token_budget=request.token_budget,
+            )
         )
         used_memory_ids = set(block.memory_ids)
         memory_scopes = {memory.scope for memory in memories}
@@ -1168,7 +1308,13 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                     memory.id for memory in memories if memory.id not in used_memory_ids
                 ],
                 warnings=block.warnings,
-                metadata={"token_budget": request.token_budget},
+                metadata={
+                    "token_budget": request.token_budget,
+                    "include_session": request.include_session,
+                    "session_id": request.session_id,
+                    "session_limit": request.session_limit,
+                    "session_memory_ids": block.metadata.get("session_memory_ids", ""),
+                },
             )
         )
         return block
@@ -1182,6 +1328,9 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 scope=request.scope,
                 token_budget=request.token_budget,
                 limit_per_query=request.limit_per_query,
+                session_store=app.state.runtime.sessions if request.include_session else None,
+                session_id=request.session_id,
+                session_limit=request.session_limit,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1210,10 +1359,19 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         }:
             try:
                 remote_embedding = app.state.runtime.remote_embedding()
-                if request.use_llm_judge or request.strategy == "selective_llm_guarded_hybrid":
+                if (
+                    request.use_llm_judge
+                    or request.use_remote_planner
+                    or request.strategy == "selective_llm_guarded_hybrid"
+                ):
                     remote_llm = app.state.runtime.remote_llm()
             except RemoteAdapterNotConfiguredError as exc:
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
+        elif request.use_remote_planner:
+            try:
+                remote_llm = app.state.runtime.remote_llm()
+            except RemoteAdapterNotConfiguredError:
+                remote_llm = None
         try:
             return orchestrate_recall(
                 request.task,
@@ -1232,6 +1390,10 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 guard_ambiguity_margin=request.guard_ambiguity_margin,
                 selective_min_similarity=request.selective_min_similarity,
                 selective_ambiguity_margin=request.selective_ambiguity_margin,
+                session_store=app.state.runtime.sessions if request.include_session else None,
+                session_id=request.session_id,
+                session_limit=request.session_limit,
+                session_scopes=request.session_scopes or None,
             )
         except RemoteAdapterError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -8,6 +8,7 @@ from memory_system import (
     MemoryCandidateCreate,
     MemoryItemCreate,
     MemoryStore,
+    SessionCloseoutDecision,
     SessionMemoryItemCreate,
     SessionMemoryStore,
     compose_context_with_session,
@@ -148,6 +149,39 @@ def test_session_memory_expiry_hides_inactive_items():
     assert items[0].status == "expired"
 
 
+def test_session_memory_search_keeps_critical_items_without_keyword_overlap():
+    store = SessionMemoryStore()
+    pending = store.add_item(
+        SessionMemoryItemCreate(
+            content="Pending confirmation: keep the generated fixture small or expand it.",
+            session_id="s1",
+            memory_type="pending_decision",
+            scope="repo:C:/workspace/demo",
+            subject="fixture size decision",
+            source_event_ids=["evt_pending"],
+        )
+    )
+    scratch = store.add_item(
+        SessionMemoryItemCreate(
+            content="The temporary report file is named route-smoke-output.json.",
+            session_id="s1",
+            memory_type="scratch_note",
+            scope="repo:C:/workspace/demo",
+            subject="temporary report filename",
+            source_event_ids=["evt_scratch"],
+        )
+    )
+
+    results = store.search(
+        "compose the final answer",
+        session_id="s1",
+        scopes=["repo:C:/workspace/demo"],
+        limit=2,
+    )
+
+    assert [item.id for item in results] == [pending.id, scratch.id]
+
+
 def test_compose_context_with_session_places_session_memory_first(tmp_path):
     session_item = SessionMemoryStore().add_item(
         SessionMemoryItemCreate(
@@ -193,3 +227,34 @@ def test_sensitive_session_events_are_filtered_but_token_budget_is_allowed():
     assert secret_result.items == []
     assert "filtered_sensitive_session_event" in secret_result.warnings
     assert len(budget_result.items) == 1
+
+
+def test_session_closeout_decisions_dismiss_completed_items():
+    store = SessionMemoryStore()
+    item = store.add_item(
+        SessionMemoryItemCreate(
+            content="The route smoke report lives in data/session-route.json.",
+            session_id="s1",
+            memory_type="working_fact",
+            scope="repo:C:/workspace/demo",
+            subject="route smoke report",
+            source_event_ids=["evt_report"],
+        )
+    )
+
+    dismissed = store.apply_closeout_decisions(
+        [
+            SessionCloseoutDecision(
+                session_memory_id=item.id,
+                action="summarize",
+                reason="The item should only appear in the closeout summary.",
+                summary="Route smoke report was generated.",
+            )
+        ]
+    )
+
+    assert [entry.id for entry in dismissed] == [item.id]
+    assert store.search("route smoke", session_id="s1") == []
+    archived = store.list_items(session_id="s1", include_expired=True)
+    assert archived[0].status == "dismissed"
+    assert archived[0].metadata["closeout_action"] == "session_closeout"

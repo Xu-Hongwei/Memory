@@ -818,6 +818,106 @@ def test_remote_llm_client_openai_compatible_chat_completion(remote_server):
     assert captured[0]["authorization"] == "Bearer dash-key"
 
 
+def test_remote_llm_client_openai_compatible_recall_planner(remote_server):
+    base_url, routes, captured = remote_server
+    routes[("POST", "/chat/completions")] = lambda payload: (
+        200,
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "intent": "verification",
+                                "facets": ["memory_system", "remote"],
+                                "identifiers": ["DeepSeek", "judge"],
+                                "query_terms": ["DeepSeek judge recall"],
+                                "memory_types": ["workflow", "project_fact"],
+                                "scopes": ["repo:C:/workspace/demo", "global"],
+                                "strategy_hint": "guarded_hybrid",
+                                "include_graph": False,
+                                "include_session": True,
+                                "needs_llm_judge": True,
+                                "confidence": 0.88,
+                                "reasons": ["remote planner understood the task"],
+                            }
+                        )
+                    }
+                }
+            ]
+        },
+    )
+
+    result = RemoteLLMClient(
+        RemoteAdapterConfig(
+            base_url=base_url,
+            api_key="dash-key",
+            compatibility=OPENAI_COMPATIBILITY,
+            llm_extract_path="/chat/completions",
+        )
+    ).plan_recall(
+        task="继续中文远程召回测试，看 DeepSeek judge",
+        scope="repo:C:/workspace/demo",
+        limit_per_query=4,
+    )
+
+    assert result.planner_source == "remote"
+    assert result.intent == "verification"
+    assert result.query_terms == ["DeepSeek judge recall"]
+    assert result.memory_types == ["workflow", "project_fact"]
+    assert result.strategy_hint == "guarded_hybrid"
+    assert result.include_session is True
+    assert result.needs_llm_judge is True
+    assert result.confidence == 0.88
+    assert captured[0]["payload"]["response_format"] == {"type": "json_object"}
+    user_payload = json.loads(captured[0]["payload"]["messages"][1]["content"])
+    assert user_payload["schema"] == "memory_system.remote_recall_planner.v1"
+    assert user_payload["limit_per_query"] == 4
+
+
+def test_remote_llm_client_recall_planner_coerces_string_booleans(remote_server):
+    base_url, routes, _captured = remote_server
+    routes[("POST", "/chat/completions")] = lambda payload: (
+        200,
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "intent": "general",
+                                "query_terms": ["release checklist"],
+                                "memory_types": ["workflow"],
+                                "scopes": ["repo:C:/workspace/demo"],
+                                "strategy_hint": "keyword",
+                                "include_graph": "false",
+                                "include_session": "false",
+                                "needs_llm_judge": "false",
+                            }
+                        )
+                    }
+                }
+            ]
+        },
+    )
+
+    result = RemoteLLMClient(
+        RemoteAdapterConfig(
+            base_url=base_url,
+            api_key="dash-key",
+            compatibility=OPENAI_COMPATIBILITY,
+            llm_extract_path="/chat/completions",
+        )
+    ).plan_recall(
+        task="发布前检查什么？",
+        scope="repo:C:/workspace/demo",
+    )
+
+    assert result.include_graph is False
+    assert result.include_session is False
+    assert result.needs_llm_judge is False
+
+
 def test_remote_llm_client_repairs_markdown_fenced_json(remote_server):
     base_url, routes, _captured = remote_server
     routes[("POST", "/chat/completions")] = lambda payload: (
@@ -4073,7 +4173,19 @@ def test_api_remote_route_splits_long_term_and_session(tmp_path, monkeypatch, re
     assert payload["session"][0]["session_id"] == "api-session"
     assert payload["session"][0]["memory_type"] == "temporary_rule"
     assert payload["metadata"]["auto_committed"] is False
-    assert payload["metadata"]["session_persisted"] is False
+    assert payload["metadata"]["session_persisted"] is True
+
+    context_response = client.post(
+        "/context/compose",
+        json={
+            "task": "Prepare the API task summary",
+            "session_id": "api-session",
+            "session_limit": 3,
+            "token_budget": 1000,
+        },
+    )
+    assert context_response.status_code == 200
+    assert "For this API task, do not commit yet." in context_response.json()["content"]
 
 
 def test_api_remote_candidate_evaluation_is_read_only(

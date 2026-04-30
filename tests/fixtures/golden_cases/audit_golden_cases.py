@@ -96,7 +96,7 @@ def extract_case_texts(case: dict[str, Any]) -> list[str]:
 
 def extract_memory_contents(case: dict[str, Any]) -> list[str]:
     contents: list[str] = []
-    for key in ("memories", "existing_memories"):
+    for key in ("memories", "existing_memories", "session_memories"):
         memories = case.get(key)
         if not isinstance(memories, list):
             continue

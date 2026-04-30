@@ -213,6 +213,14 @@ golden_cases/
   write_policy_cn_realistic.jsonl
   generate_write_policy_en_realistic.py
   write_policy_en_realistic.jsonl
+  generate_session_route.py
+  session_route.jsonl
+  generate_session_route_splitting.py
+  session_route_splitting.jsonl
+  generate_task_boundary.py
+  task_boundary.jsonl
+  generate_session_closeout.py
+  session_closeout.jsonl
   generate_retrieval_context.py
   retrieval_context.jsonl
   generate_semantic_retrieval_cn.py
@@ -269,6 +277,12 @@ golden_cases/
 `write_policy_cn_realistic.jsonl` 的重点不是扩大模板行数，而是约束真实中文表达边界：低证据偏好进入 `ask_user`，泛化不足的“以后都这样”需要确认，日常喜欢和情绪闲聊默认不写入，敏感内容不提候选，已验证排错、固定流程和环境事实应稳定写成对应类型。每条 case 都带 `scenario`、`utterance_style` 和 `source_family`，用于检查场景、表达方式和来源结构是否足够分散；当前补充集覆盖 213 个场景标签、28 种表达风格和 6 个来源族，输入文本模板化重复应保持为 0。
 
 `write_policy_en_realistic.jsonl` 用同样结构约束英文表达边界：`going forward` / `by default` / `please follow this rule` 应写成长期偏好，`maybe I prefer` / `I might want` / `not sure whether` 应进入 `ask_user`，`do not treat this as a preference` / `for this run` / `today only` 默认不写入，`Problem / Lesson / Solution / Verified` 应稳定写成排错经验。当前补充集覆盖 193 个场景标签、28 种表达风格和 6 个来源族。
+
+`session_route.jsonl` 固定为 240 条，专门验证短期记忆分流：`session` 覆盖 `task_state`、`temporary_rule`、`working_fact`、`pending_decision`、`emotional_state`、`scratch_note` 六类，另外用 `ignore`、`long_term`、`reject` 和 `ask_user` 做对照，防止把简单确认、长期偏好、敏感内容和阻塞确认误放进 session。默认单测只验证 fixture 形状和当前本地 fallback 可识别的 80 条子集；真实远程准确率应另走 opt-in 评估。
+
+`session_route_splitting.jsonl` 固定为 24 条，专门验证复合输入：单句多原子项和多 event 批量输入都要求同时拆出 `long_term` 和 `session`，部分 case 额外包含 `ask_user` 或 `reject`。它补足了单句单标签测试看不到的“长期/短期信息差分”问题。
+
+`session_closeout.jsonl` 固定为 160 条，专门验证任务完成、取消、切换或仍待确认时，已有短期记忆如何退出运行期：临时规则和取消任务应 `discard`，任务状态可 `summarize`，仍待用户确认的决策应 `keep`，已验证且可复用的工作事实/流程才允许 `promote_candidate`。敏感样本只使用 `[REDACTED]` 占位，远程 preflight 过滤后允许表现为 `missing`，但禁止升级为长期候选。
 
 基础集分类数量：
 
@@ -494,7 +508,7 @@ inactive_or_low_confidence_no_review: 40
 - 相同冲突已有 pending review 时不会重复生成。
 - 同目标关系、inactive 来源、低置信关系不会生成 review。
 
-当前全部黄金测试集总计 6550 条。
+当前全部黄金测试集总计 7020 条。
 
 CLI 审查入口不单独扩展黄金集，而是用 `tests/test_cli.py` 覆盖最小闭环：
 
@@ -822,6 +836,28 @@ python -m pytest tests/test_remote_candidate_quality.py::test_remote_candidate_q
 ```
 
 这说明当前远程链路更偏高 precision：误写、类型漂移和已知 FN 都已被本地治理压住。扩大到几百条前，应沿用同一 fixture 结构，并继续让 live 远程质量测试默认跳过，避免普通回归测试依赖网络、额度和模型波动。
+
+短期记忆分流的专门统计脚本：
+
+```powershell
+python tools\evaluate_session_route.py --fixture tests\fixtures\golden_cases\session_route.jsonl --sample-size 50 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data\session_route_eval_50.json
+python tools\evaluate_session_route.py --fixture tests\fixtures\golden_cases\session_route.jsonl --category en_session_pending_decision --category cn_ask_user_blocking_decision --category en_long_term_project_rule --case-concurrency 4 --failure-limit 20 --report-path data\session_route_eval_targeted.json
+python tools\evaluate_session_route_splitting.py --fixture tests\fixtures\golden_cases\session_route_splitting.jsonl --case-concurrency 4 --failure-limit 20 --report-path data\session_route_splitting_eval_24.json
+python tools\evaluate_task_boundary.py --fixture tests\fixtures\golden_cases\task_boundary.jsonl --case-concurrency 4 --failure-limit 20 --report-path data\task_boundary_eval_46.json
+python tools\evaluate_session_closeout.py --fixture tests\fixtures\golden_cases\session_closeout.jsonl --sample-per-category 1 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data\session_closeout_eval_16.json
+```
+
+这个脚本直接调用 `RemoteLLMClient.route_memories()`，用来检查“对话 event 应进入长期候选、短期 session、忽略、拒绝，还是先问用户”。`route_accuracy` 只看 long_term / session / ignore / reject / ask_user 主路由；`strict_accuracy` 还要求 `memory_type` 或 `session_memory_type` 完全一致。2026-04-30 同 seed 50 条真实远程验收结果为 route `50/50`、strict `42/50`、serious failures `0`，报告保存在 `data\session_route_eval_50_final.json`；定向边界集 `en_session_pending_decision + cn_ask_user_blocking_decision + en_long_term_project_rule` 为 route `30/30`、strict `26/30`、serious failures `0`，报告保存在 `data\session_route_eval_targeted_after_prompt.json`。剩余 strict mismatch 主要是 `scratch_note` vs `temporary_rule`、`workflow` vs `project_fact` 这类细分类漂移，不影响主路由。
+
+`evaluate_session_route_splitting.py` 用同一次远程请求处理 case 内所有 events，并逐项匹配 expected item。2026-04-30 真实远程 24 条结果为 route case `24/24`、route item `57/57`、strict item `51/57`、serious failures `0`，报告保存在 `data\session_route_splitting_eval_24_final.json`。这说明当前模型已经能在复合输入中同时拆出长期和短期主路由；剩余 strict mismatch 主要是短期细分类漂移、workflow/project_fact 边界和少量重复 long_term 噪声。
+
+`route_memories()` 现在也会请求观察型 `task_boundary`，输入可以包含 `current_task_state`、`recent_events` 和当前 session 记忆。这个字段用于判断 `same_task / new_task / switch_task / task_done / task_cancelled / unclear / no_change`，默认只解析、返回和记录，不自动切换任务。任务结束后的短期记忆整理由 `/session/closeout` 显式触发：LLM 逐条判断 `keep / discard / summarize / promote_candidate`，本地再执行 dismiss 或创建 pending candidate。2026-04-30 真实远程烟测中，当前任务为“短期记忆接入上下文”、最近消息建议“下一步做短期记忆生命周期管理”、用户回复“可以，那就进入生命周期这一步”时，模型返回 `switch_task/high`，`next_task_title=短期记忆生命周期管理`。
+
+`evaluate_task_boundary.py` 是 `task_boundary` 专项统计脚本。它用 `task_boundary.jsonl` 检查当前任务子步骤是否保持 `same_task`，显式“接下来/换成/进入”是否切换，完成/取消/短确认是否进入对应边界。当前本地 boundary gate 已调整为 soft gate：只做结构规范化、明确完成/取消/切换兜底，以及弱证据 `switch_task/new_task` 降置信，不再靠本地子步骤关键词强制改判。2026-04-30 真实远程 46 条 soft gate 结果为 action `46/46`、strict `46/46`，报告保存在 `data\task_boundary_eval_soft_46_final.json`。
+
+`evaluate_session_closeout.py` 是 `session_closeout` 专项统计脚本。它会把 fixture 中的短期记忆临时写入 `SessionMemoryStore`，用真实 id 调用 `RemoteLLMClient.closeout_session_memories()`，再按 alias 还原并统计 action accuracy、strict accuracy、candidate type mismatch、forbidden promotion、unsafe promotion 和 missing decisions。它测试的是“短期记忆如何退出或沉淀”，和 `evaluate_session_route.py` 测的“event 如何进入 session/long_term/ignore/reject/ask_user”不是同一环。2026-04-30 的 16 条分层真实远程 smoke 结果为 case `16/16`、action item `32/32`、strict item `32/32`、unsafe promotion `0`，报告保存在 `data\session_closeout_eval_16.json`。
+
+API route 出来的 `session` 项会进入运行期 `SessionMemoryStore`，并在 `/context/compose` 和 `/recall/task` 中按 `session_id` 参与上下文组装。短期搜索会给 `pending_decision`、`temporary_rule`、`task_state`、`working_fact`、`emotional_state` 和 `scratch_note` 基础分，所以当前 session 的关键短期项不会因为 query 没有关键词重叠就被完全丢掉；最终注入数量仍由 `session_limit` 控制。
 
 Embedding 检索当前有四组固定 fixture：
 

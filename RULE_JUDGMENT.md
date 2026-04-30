@@ -308,8 +308,10 @@ guarded_hybrid 能显著减少 unexpected。
 ```text
 task
   -> 判断是否需要记忆
+  -> LLM planner 优先 / 本地 planner 兜底
   -> 选择 keyword / guarded_hybrid / selective_llm_guarded_hybrid
   -> 可选合并 graph recall
+  -> 可选合并 session memory
   -> no-match / skipped 判断
   -> context composer
   -> retrieval_logs(source=orchestrated_recall)
@@ -318,10 +320,13 @@ task
 当前规则：
 
 - `ok`、`谢谢` 等低记忆需求消息直接跳过召回，避免为了闲聊硬查长期记忆。
-- 没有远程客户端时走本地 `RecallPlanner + keyword search`。
-- 有 remote embedding 时走 `guarded_hybrid`，先压低低分和歧义召回。
-- 有 remote embedding 和 remote LLM 时走 `selective_llm_guarded_hybrid`，只在本地 guard 不够可靠或具体事实风险较高时请求 LLM 二次判断。
-- 图谱召回只能作为补充来源，不能绕过 `active`、scope、confidence 和上下文预算。
+- 有 remote LLM 时优先调用 `RemoteLLMClient.plan_recall(...)`，让模型输出 `query_terms`、`memory_types`、`scopes`、`strategy_hint`、`include_graph`、`include_session`、`needs_llm_judge` 和置信度。
+- 远程 planner 失败、不可用或输出不合法时，自动回退本地 `RecallPlanner`，并在 `planner_warnings` 中记录失败类型。
+- 没有 remote embedding 时，即使 planner 建议混合召回，也会降级为本地 keyword search。
+- 有 remote embedding 时可走 `guarded_hybrid`，先压低低分和歧义召回。
+- 有 remote embedding 和 remote LLM，且 planner 或本地 guard 认为需要二次判断时，可走 `selective_llm_guarded_hybrid`。
+- 图谱召回只能作为补充来源，不能绕过 `active`、scope、confidence 和上下文预算；实际执行还要求调用方 `include_graph=true` 且 planner `include_graph=true`。
+- 当前 session memory 可以按 `session_id` 和 scope 参与上下文组装，短期记忆不写入长期库，但会在当前任务内优先影响回答；planner `include_session=false` 不会完全关闭 session，只会把本轮 session 召回软限制到 1 条。
 - 最终日志必须区分 `retrieved_memory_ids`、`used_memory_ids`、`skipped_memory_ids`，便于后续反馈、降权和遗忘。
 
 ## 12. 上下文注入规则

@@ -88,6 +88,17 @@ EvidenceType = Literal[
 ]
 TimeValidity = Literal["persistent", "until_changed", "session", "unknown"]
 MemoryRoute = Literal["long_term", "session", "ignore", "reject", "ask_user"]
+TaskBoundaryAction = Literal[
+    "same_task",
+    "new_task",
+    "switch_task",
+    "task_done",
+    "task_cancelled",
+    "unclear",
+    "no_change",
+]
+TaskBoundaryConfidence = Literal["high", "medium", "low", "unknown"]
+TaskStatus = Literal["active", "done", "cancelled", "unknown"]
 SessionMemoryType = Literal[
     "task_state",
     "temporary_rule",
@@ -97,6 +108,7 @@ SessionMemoryType = Literal[
     "scratch_note",
 ]
 SessionMemoryStatus = Literal["active", "expired", "dismissed"]
+SessionCloseoutAction = Literal["keep", "discard", "summarize", "promote_candidate"]
 EntityType = Literal[
     "repo",
     "file",
@@ -117,6 +129,7 @@ RecallStrategy = Literal[
     "guarded_hybrid",
     "selective_llm_guarded_hybrid",
 ]
+RecallPlannerSource = Literal["local", "remote", "fallback"]
 
 
 class CandidateScores(BaseModel):
@@ -243,6 +256,22 @@ class SessionMemoryExtractionResult(BaseModel):
     items: list[SessionMemoryItemCreate] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SessionCloseoutDecision(BaseModel):
+    session_memory_id: str
+    action: SessionCloseoutAction
+    reason: str
+    summary: str | None = None
+    candidate: MemoryCandidateCreate | None = None
+
+    @field_validator("session_memory_id", "reason")
+    @classmethod
+    def require_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("value must not be empty")
+        return stripped
 
 
 class MemoryVersionRead(BaseModel):
@@ -392,6 +421,16 @@ class RecallPlan(BaseModel):
     scopes: list[str]
     limit_per_query: int = 5
     reasons: list[str] = Field(default_factory=list)
+    facets: list[str] = Field(default_factory=list)
+    identifiers: list[str] = Field(default_factory=list)
+    constraints: dict[str, Any] = Field(default_factory=dict)
+    strategy_hint: RecallStrategy = "auto"
+    include_graph: bool = False
+    include_session: bool = True
+    needs_llm_judge: bool = False
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    planner_source: RecallPlannerSource = "local"
+    planner_warnings: list[str] = Field(default_factory=list)
 
 
 class TaskRecallResult(BaseModel):
@@ -618,11 +657,42 @@ class MemoryRouteItem(BaseModel):
         return stripped
 
 
+class TaskBoundaryDecision(BaseModel):
+    action: TaskBoundaryAction = "no_change"
+    confidence: TaskBoundaryConfidence = "unknown"
+    current_task_id: str | None = None
+    current_task_title: str | None = None
+    next_task_title: str | None = None
+    previous_task_status: TaskStatus = "unknown"
+    reason: str = "No task boundary decision was provided."
+
+    @field_validator("reason")
+    @classmethod
+    def require_reason_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("reason must not be empty")
+        return stripped
+
+
+class SessionCloseoutResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    provider: str = "remote"
+    session_id: str
+    task_summary: str | None = None
+    task_boundary: TaskBoundaryDecision | None = None
+    decisions: list[SessionCloseoutDecision] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class RemoteMemoryRouteResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     provider: str = "remote"
     items: list[MemoryRouteItem] = Field(default_factory=list)
+    task_boundary: TaskBoundaryDecision | None = None
     warnings: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

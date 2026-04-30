@@ -33,6 +33,8 @@ query -> embedding -> topK -> inject
 
 Retrieval Planner 的职责是把当前任务转换成检索计划。
 
+当前实现采用“远程 LLM planner 优先，本地 planner 兜底”的模式：`orchestrate_recall(...)` 如果拿到 `remote_llm`，会先调用 `RemoteLLMClient.plan_recall(...)`；如果远程失败、未配置或返回不合法，则回退到本地 `RecallPlanner`。这样可以把复杂语义判断交给模型，同时保留离线可用的基础链路。
+
 ### 2.1 输入
 
 ```json
@@ -50,7 +52,12 @@ Retrieval Planner 的职责是把当前任务转换成检索计划。
 
 ```json
 {
-  "task_type": "debugging",
+  "intent": "debugging",
+  "query_terms": [
+    "项目启动失败",
+    "启动命令",
+    "排错经验"
+  ],
   "memory_types": [
     "troubleshooting",
     "environment_fact",
@@ -61,11 +68,14 @@ Retrieval Planner 的职责是把当前任务转换成检索计划。
     "repo:C:\\Users\\Administrator\\Desktop\\example",
     "global"
   ],
-  "retrieval_channels": [
-    "keyword",
-    "vector",
-    "graph"
-  ]
+  "facets": ["startup", "debugging"],
+  "identifiers": ["package.json", "src/server.ts"],
+  "strategy_hint": "guarded_hybrid",
+  "include_graph": true,
+  "include_session": true,
+  "needs_llm_judge": true,
+  "confidence": 0.82,
+  "planner_source": "remote"
 }
 ```
 
@@ -172,26 +182,30 @@ confirmed > likely > inferred > unknown
 ```text
 task
   -> memory-needed check
-  -> RecallPlanner
+  -> LLM planner first / local planner fallback
   -> keyword / guarded_hybrid / selective_llm_guarded_hybrid
   -> optional graph recall
+  -> optional session recall
   -> Context Composer
   -> retrieval_logs(source=orchestrated_recall)
 ```
 
 `strategy="auto"` 的选择规则：
 
-- 没有远程客户端：使用本地 keyword recall。
-- 有 remote embedding：使用 `guarded_hybrid`。
-- 有 remote embedding + remote LLM：使用 `selective_llm_guarded_hybrid`。
+- 没有远程客户端：使用本地 planner + keyword recall。
+- 只有 remote LLM：可以先用 LLM planner 生成召回计划，但实际检索仍降级为 keyword。
+- 有 remote embedding：可使用 `guarded_hybrid`。
+- 有 remote embedding + remote LLM，且 planner 或 guard 认为需要二次判断：可使用 `selective_llm_guarded_hybrid`。
+- 图谱召回采用双门控：调用方允许 `include_graph`，并且 planner 认为 `include_graph=true`，才会执行 graph recall。
+- session recall 采用软门控：调用方允许 session 时仍会查短期记忆；如果 planner 认为 `include_session=false`，本轮 session 召回会被软限制到 1 条，避免把低相关短期内容塞进上下文。
 
-Orchestrator 的价值在于统一记录 retrieved / used / skipped / warnings / steps。这样后续做反馈、降权、遗忘和 no-match 调参时，不需要从多个分散日志里拼事实。
+Orchestrator 的价值在于统一记录 retrieved / used / skipped / warnings / steps 和 planner metadata。这样后续做反馈、降权、遗忘、no-match 调参和 planner 策略调试时，不需要从多个分散日志里拼事实。
 
 ## 6. 上下文组装
 
 Context Composer 应该输出紧凑、可解释、任务相关的内容。
 
-### 5.1 注入格式
+### 6.1 注入格式
 
 推荐格式：
 
@@ -208,7 +222,7 @@ Relevant memory:
    解决方式：使用 netstat 查端口并关闭对应进程
 ```
 
-### 5.2 注入原则
+### 6.2 注入原则
 
 - 只注入和当前任务相关的最少记忆
 - 优先注入高置信度记忆
@@ -328,19 +342,18 @@ usage stats -> maintenance review item -> resolve -> lifecycle change
 
 ## 11. 远程 Embedding 的位置
 
-当前远程 embedding 只完成“调用和验证”：
+当前远程 embedding 已经从“调用和验证”推进到“可显式缓存并参与 semantic / hybrid / guarded_hybrid 召回”：
 
 ```text
 texts -> RemoteEmbeddingClient -> vectors
+memory_items -> memory_embeddings(memory_id, model, vector_json)
+query -> query embedding -> semantic / hybrid ranking
 ```
 
-它还没有接入默认召回排序，也没有写入向量索引。这样可以先验证三件事：
+它仍然不会在普通长期记忆写入时自动触发，避免基础写入链路依赖网络、额度和模型波动。远程向量当前主要在显式 API / CLI、远程召回评估和 orchestrated recall 的 remote 模式中使用。这样可以同时满足两点：
 
-- 远程服务是否稳定。
-- 向量维度是否一致。
-- 调用延迟是否能接受。
-
-等远程 embedding 质量和速度稳定后，再把它接入混合检索：
+- 本地 keyword / FTS 行为保持稳定，普通测试不依赖网络。
+- 需要语义召回时，可以通过 embedding cache 复用已生成向量，并和本地 scope、type、confidence 规则共同排序。
 
 ```text
 FTS5 keyword recall

@@ -56,7 +56,7 @@ src/memory_system/
   event_log.py      SQLite 事件日志、查询和基础敏感信息处理
   memory_store.py   结构化候选记忆、写入门禁、长期记忆、版本记录和 FTS 检索
   context_composer.py  检索记忆的上下文组装和预算控制
-  remote.py         Remote LLM / embedding HTTP adapter
+  remote.py         Remote LLM / embedding HTTP adapter、记忆分流和召回 planner
   session_memory.py 会话级短期记忆、短期上下文组装和本地兜底筛选
   recall_orchestrator.py  统一召回编排层
   graph_recall.py   轻量知识图谱召回
@@ -76,6 +76,7 @@ tests/
   test_golden_graph_recall.py
   test_golden_graph_conflicts.py
   test_golden_conflict_reviews.py
+  test_golden_session_closeout.py
   test_lifecycle.py
   test_task_recall.py
   test_recall_orchestrator.py
@@ -99,6 +100,8 @@ tests/
   fixtures/golden_cases/graph_conflicts.jsonl
   fixtures/golden_cases/generate_conflict_reviews.py
   fixtures/golden_cases/conflict_reviews.jsonl
+  fixtures/golden_cases/generate_session_closeout.py
+  fixtures/golden_cases/session_closeout.jsonl
 ```
 
 候选记忆已经不只是关键词触发，而是会保留结构化分析：
@@ -133,10 +136,12 @@ Phase 6-lite 先实现轻量知识图谱：
 Recall Orchestrator 现在作为智能体接入记忆的推荐入口：
 
 - `orchestrate_recall(...)` 会先判断当前任务是否值得召回记忆，像 `ok` / `谢谢` 这类低记忆需求消息会直接跳过。
-- 默认本地链路使用 `RecallPlanner -> keyword search -> context composer`。
-- 如果传入 remote embedding，会自动升级到 `guarded_hybrid`；如果同时传入 remote LLM，会使用 `selective_llm_guarded_hybrid`。
-- 可选合并图谱召回结果，但最终仍然统一经过 `active`、scope、confidence、token budget 和 no-match 保护。
-- 每次编排都会写入 `retrieval_logs(source=orchestrated_recall)`，记录 retrieved / used / skipped / warnings / steps，方便后续做反馈和遗忘。
+- 召回计划先由 planner 生成：有 remote LLM 时优先调用 `RemoteLLMClient.plan_recall(...)`，失败时回退到本地 `RecallPlanner`。
+- planner 会输出 `query_terms`、`memory_types`、`scopes`、`strategy_hint`、`include_graph`、`include_session`、`needs_llm_judge` 和置信度等字段。
+- `strategy="auto"` 会综合 planner 的策略建议和当前可用客户端：没有 remote embedding 时降级为 keyword；有 embedding 时可走 `guarded_hybrid`；同时有 LLM 且需要复核时可走 `selective_llm_guarded_hybrid`。
+- 图谱召回需要调用方 `include_graph=true` 且 planner `include_graph=true`；短期记忆只要调用方允许就会查，但 planner 不建议 session 时会把本轮 session 召回软限制到 1 条。
+- 可选合并图谱召回和当前 session memory；最终仍然统一经过 `active`、scope、confidence、token budget 和 no-match 保护。
+- 每次编排都会写入 `retrieval_logs(source=orchestrated_recall)`，记录 retrieved / used / skipped / warnings / steps / planner metadata，方便后续做反馈、调参和遗忘。
 
 黄金测试集当前是 2000 条固定回归样本，由 `tests/fixtures/golden_cases/generate_write_policy.py`
 生成并写入 `tests/fixtures/golden_cases/write_policy.jsonl`。样本不是复制网络语料，而是参考主流记忆框架的分层共识后改写出的日常交流、工程协作和排错场景。
@@ -285,7 +290,7 @@ inactive 来源不参与冲突：20
 inactive 或低置信关系不生成 review：40
 ```
 
-当前黄金测试集总量为 4950 条。新增的 `semantic_retrieval_cn.jsonl` 为 150 条中文语义召回样本，覆盖工程协作、记忆规则、隐私边界、日常偏好和 no-match。
+当前黄金测试集总量为 7020 条。新增的 `session_route.jsonl` 为 240 条短期记忆分流样本，覆盖 session/ignore/long_term/reject/ask_user，以及 6 类 session memory type；`session_route_splitting.jsonl` 为 24 条多信息分流样本，覆盖单句多原子项和多 event 批量输入；`task_boundary.jsonl` 为 46 条任务边界样本，覆盖 same_task 子步骤、显式切换、完成、取消、短确认和承接下一步；`session_closeout.jsonl` 为 160 条短期记忆收尾样本，覆盖 keep/discard/summarize/promote_candidate 和敏感过滤。`semantic_retrieval_cn.jsonl` 为 150 条中文语义召回样本，覆盖工程协作、记忆规则、隐私边界、日常偏好和 no-match。
 
 当前还支持：
 
@@ -311,8 +316,11 @@ list_memory_usage_stats(recommended_action=...)
 create_maintenance_reviews(scope=..., recommended_action=...)
 resolve_maintenance_review(review_id, action=...)
 RemoteLLMClient(...).route_memories([event, ...])
+RemoteLLMClient(...).closeout_session_memories(session_id=..., session_memories=[...])
+RemoteLLMClient(...).plan_recall(task="...")
 RemoteLLMClient(...).extract_candidates(event)  # legacy long-term-only
 RemoteEmbeddingClient(...).embed_texts([...])
+orchestrate_recall(task, store, remote_llm=..., remote_embedding=..., session_store=...)
 ```
 
 运行测试：
@@ -342,8 +350,9 @@ memoryctl --db data/memory.sqlite maintenance resolve <review_id> --action mark_
 远程适配器调试 CLI：
 
 ```bash
-$env:DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-# DASHSCOPE_API_KEY should already be configured in the environment.
+$env:DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+$env:DEEPSEEK_MODEL = "deepseek-v4-flash"
+# DEEPSEEK_API_KEY / DASHSCOPE_API_KEY should already be configured in the environment.
 memoryctl --db data/memory.sqlite remote status
 memoryctl --db data/memory.sqlite remote health
 memoryctl --db data/memory.sqlite remote route --event-id <event_id> --json
@@ -362,9 +371,27 @@ memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixt
 memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --json
 memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --embedding-cache data/eval_embedding_cache.jsonl --report-path data/retrieval_report.json --case-concurrency 4 --judge-group-size 4 --judge-concurrency 2 --json
 python tools/benchmark_remote_retrieval.py --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --limit 60 --embedding-cache data/benchmark_remote_retrieval_embeddings.jsonl --output-dir data/remote_retrieval_benchmarks --case-concurrency 4
+python tools/evaluate_session_route.py --fixture tests/fixtures/golden_cases/session_route.jsonl --sample-size 50 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data/session_route_eval_50.json
+python tools/evaluate_session_route_splitting.py --fixture tests/fixtures/golden_cases/session_route_splitting.jsonl --case-concurrency 4 --failure-limit 20 --report-path data/session_route_splitting_eval_24.json
+python tools/evaluate_task_boundary.py --fixture tests/fixtures/golden_cases/task_boundary.jsonl --case-concurrency 4 --failure-limit 20 --report-path data/task_boundary_eval_46.json
+python tools/evaluate_session_closeout.py --fixture tests/fixtures/golden_cases/session_closeout.jsonl --sample-per-category 1 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data/session_closeout_eval_16.json
 ```
 
-`remote route` 是当前推荐入口：一次远程调用把 event 分流为长期候选、短期会话记忆、忽略、拒绝或需要确认。`remote extract` 和 `remote import` 保留为 legacy long-term-only 调试入口，只适合单独观察长期候选提取链路。
+Route input policy: `events` are writable source events, while `recent_events` are read-only context. The LLM may use `recent_events` to resolve references, distinguish long-term versus session memory, and judge `task_boundary`, but every non-ignore route item must cite at least one current `events[].id` in `source_event_ids`. Items that only cite `recent_events` are filtered locally with `filtered_context_only_route_item`.
+
+`remote route` 是当前推荐入口：一次远程调用把 event 分流为长期候选、短期会话记忆、忽略、拒绝或需要确认，并可在同一轮返回观察型 `task_boundary`。API 中的 session route 会进入运行期短期记忆库，后续 `/context/compose`、`/recall/task` 和 `/recall/orchestrated` 可按 `session_id` 优先注入；`task_boundary` 默认只返回和记录，不自动切换任务，真正的任务结束整理由 `/session/closeout` 显式触发。CLI 仍只在本次命令响应里返回短期项。`remote extract` 和 `remote import` 保留为 legacy long-term-only 调试入口，只适合单独观察长期候选提取链路。
+
+`/recall/orchestrated` 是当前推荐的智能体召回入口。默认 `use_remote_planner=true`：如果远程 LLM 已配置，会先用 LLM planner 生成召回计划；如果远程不可用或返回不合法，会自动回退本地 planner。`use_remote=true` 时还会启用 remote embedding 和可选 LLM judge；未启用远程 embedding 时，即使 planner 建议混合召回，也会降级为本地 keyword，保证基础链路不依赖网络。
+
+`/session/closeout` 会把当前 session memory 交给远程 LLM 做结算判断，逐条返回 `keep / discard / summarize / promote_candidate`。API 会按 LLM 决策把 `discard/summarize/promote_candidate` 的短期项标记为 `dismissed`；其中 `promote_candidate` 会先创建长期候选并继续走本地 policy gate，不会直接写入长期记忆。
+
+`evaluate_session_closeout.py` 是 `/session/closeout` 的真实远程评估脚本，重点看任务完成、取消、切换或仍待确认时，短期记忆是否正确保留、丢弃、摘要或升级为长期候选。它按 alias 统计 action accuracy、strict accuracy、candidate type mismatch、forbidden promotion、unsafe promotion 和 missing decisions。2026-04-30 的 16-case 分层 smoke 结果为 case `16/16`、action item `32/32`、strict item `32/32`、unsafe promotion `0`，报告保存在 `data\session_closeout_eval_16.json`。
+
+`evaluate_session_route.py` 是 `remote route` 的真实远程评估脚本，重点看短期记忆分流是否把当前任务状态、临时规则、工作事实、待决事项、情绪状态和草稿备注放进 `session`，同时把简单确认、敏感内容、长期偏好和阻塞确认分到正确 route。当前同 seed 50 条验收结果为 route `50/50`、strict `42/50`、serious failures `0`；strict mismatch 主要是短期细分类或长期 workflow/project_fact 的边界漂移。
+
+`evaluate_session_route_splitting.py` 专门测试复合输入：单句里同时包含长期偏好、当前任务规则、确认请求，或多条 event 一起传入。当前 24 条验收结果为 route case `24/24`、route item `57/57`、strict item `51/57`、serious failures `0`，说明主分流已经覆盖“多信息差分”场景。
+
+`evaluate_task_boundary.py` 专门测试 `task_boundary`：重点看“测试/验证/解释/举例/同步文档/修当前问题”是否保持 `same_task`，以及“接下来做 X / 换成 X / 完成 / 取消”是否给出正确边界。当前本地 boundary gate 已调整为 soft gate：只做结构规范化、明确完成/取消/切换兜底，以及弱证据 `switch_task/new_task` 降置信，不再靠本地子步骤关键词强制改判。2026-04-30 真实远程 46 条 soft gate 验收结果为 action `46/46`、strict `46/46`，报告保存在 `data\task_boundary_eval_soft_46_final.json`。
 
 外部公开记忆数据集只作为参考语料，原始数据不进入仓库回归 fixture；当前已落地一组 public-inspired 合成召回 fixture。下载位置和使用方式见 `docs/12-public-memory-datasets.md`。
 
@@ -506,6 +533,7 @@ POST /context/compose
 POST /recall/task
 POST /recall/orchestrated
 POST /recall/graph
+POST /session/closeout
 ```
 
 ## 4. 设计原则
@@ -557,10 +585,11 @@ POST /recall/graph
 
 ```text
 Event Log
-  -> Memory Candidate Extractor
-  -> Write Policy Gate
-  -> Structured Memory Store
-  -> Retrieval Planner
+  -> Memory Router
+  -> long_term / session / ignore / reject / ask_user
+  -> Long-term Policy Gate
+  -> Session Memory Store
+  -> Orchestrated Recall
   -> Context Composer
 ```
 
@@ -574,7 +603,7 @@ Event Log
 6. 当记忆规模和语义检索需求变大后，再加入向量检索。
 7. 加入自动巩固、冲突修订、遗忘机制和多智能体共享记忆。
 
-当前代码已经先落地了第 7 步里的“自动巩固”最小闭环：规则发现可巩固组，生成候选，commit 后新记忆 active、旧记忆 superseded。
+当前代码已经超过最初 MVP：除了“自动巩固”最小闭环，还加入了 `route_memories` 短长期分流、session memory、任务边界、session closeout、远程 embedding 混合召回、LLM planner 优先的 `orchestrate_recall(...)` 和轻量知识图谱。
 
 ## 7. 与主流框架的关系
 

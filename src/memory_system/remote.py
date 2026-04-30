@@ -21,6 +21,8 @@ from memory_system.schemas import (
     MemoryItemRead,
     MemoryRouteItem,
     MemoryType,
+    RecallPlan,
+    RecallStrategy,
     RemoteAdapterConfigRead,
     RemoteCandidateExtractionResult,
     RemoteEmbeddingResult,
@@ -29,17 +31,23 @@ from memory_system.schemas import (
     RemoteRetrievalGuardDecisionRead,
     RetrievalGuardDecision,
     Risk,
+    SessionCloseoutDecision,
+    SessionCloseoutResult,
+    SessionMemoryItemRead,
     SessionMemoryType,
+    TaskBoundaryDecision,
     TimeValidity,
 )
 
 REMOTE_MEMORY_TYPES = set(get_args(MemoryType))
+REMOTE_RECALL_STRATEGIES = set(get_args(RecallStrategy))
 REMOTE_SESSION_MEMORY_TYPES = set(get_args(SessionMemoryType))
 REMOTE_EVIDENCE_TYPES = set(get_args(EvidenceType))
 REMOTE_TIME_VALIDITIES = set(get_args(TimeValidity))
 REMOTE_CONFIDENCES = set(get_args(Confidence))
 REMOTE_RISKS = set(get_args(Risk))
 REMOTE_ROUTE_VALUES = {"long_term", "session", "ignore", "reject", "ask_user"}
+REMOTE_CLOSEOUT_ACTIONS = {"keep", "discard", "summarize", "promote_candidate"}
 
 DEFAULT_LLM_MODEL = "deepseek-v4-flash"
 DEFAULT_EMBEDDING_MODEL = "tongyi-embedding-vision-flash-2026-03-06"
@@ -737,6 +745,8 @@ class RemoteLLMClient:
         events: list[EventRead],
         *,
         recent_events: list[EventRead] | None = None,
+        current_task_state: dict[str, Any] | None = None,
+        active_session_memories: list[dict[str, Any]] | None = None,
         instructions: str | None = None,
     ) -> RemoteMemoryRouteResult:
         safe_events, rejected_items, warnings = _safe_route_events(events)
@@ -756,6 +766,8 @@ class RemoteLLMClient:
         payload = _build_memory_route_payload(
             safe_events,
             recent_events=safe_recent_events,
+            current_task_state=current_task_state,
+            active_session_memories=active_session_memories or [],
             instructions=resolved_instructions,
             model=self.config.llm_model,
         )
@@ -767,7 +779,12 @@ class RemoteLLMClient:
             raw = _parse_openai_chat_json(raw)
         else:
             raw = self.http.post_json(self.config.llm_extract_path, payload)
-        result = _parse_memory_route_result(raw, safe_events)
+        result = _parse_memory_route_result(
+            raw,
+            safe_events,
+            recent_events=safe_recent_events,
+            current_task_state=current_task_state,
+        )
         combined_warnings = [*warnings, *result.warnings]
         combined_items = [*rejected_items, *result.items]
         return result.model_copy(
@@ -780,6 +797,93 @@ class RemoteLLMClient:
                     "rejected_event_count": len(rejected_items),
                 },
             }
+        )
+
+    def closeout_session_memories(
+        self,
+        *,
+        session_id: str,
+        session_memories: list[SessionMemoryItemRead],
+        task_boundary: TaskBoundaryDecision | None = None,
+        current_task_state: dict[str, Any] | None = None,
+        recent_events: list[EventRead] | None = None,
+        instructions: str | None = None,
+    ) -> SessionCloseoutResult:
+        safe_items: list[SessionMemoryItemRead] = []
+        warnings: list[str] = []
+        for item in session_memories:
+            if _contains_sensitive_remote_text(item.content):
+                warnings.append(f"filtered_sensitive_session_memory:{item.id}")
+                continue
+            safe_items.append(item)
+        if not safe_items:
+            return SessionCloseoutResult(
+                provider="remote",
+                session_id=session_id,
+                task_boundary=task_boundary,
+                warnings=[*warnings, "no_safe_session_memories"],
+                metadata={"skipped_remote_call": True},
+            )
+
+        payload = _build_session_closeout_payload(
+            session_id=session_id,
+            session_memories=safe_items,
+            task_boundary=task_boundary,
+            current_task_state=current_task_state or {},
+            recent_events=recent_events or [],
+            instructions=instructions,
+            model=self.config.llm_model,
+        )
+        if self.config.compatibility == OPENAI_COMPATIBILITY:
+            raw = self.http.post_json(
+                self.config.llm_extract_path,
+                _build_openai_session_closeout_payload(payload, self.config.llm_model),
+            )
+            raw = _parse_openai_chat_json(raw)
+        else:
+            raw = self.http.post_json(self.config.llm_extract_path, payload)
+        result = _parse_session_closeout_result(
+            raw,
+            session_id=session_id,
+            session_memories=safe_items,
+            task_boundary=task_boundary,
+        )
+        return result.model_copy(update={"warnings": [*warnings, *result.warnings]})
+
+    def plan_recall(
+        self,
+        *,
+        task: str,
+        scope: str | None = None,
+        limit_per_query: int = 5,
+        instructions: str | None = None,
+    ) -> RecallPlan:
+        if not task.strip():
+            raise RemoteAdapterError("remote recall planner task must not be empty")
+        if _contains_sensitive_remote_recall_text(task):
+            raise RemoteAdapterError("sensitive recall planner task was not sent remotely")
+
+        payload = _build_recall_planner_payload(
+            task=task,
+            scope=scope,
+            limit_per_query=limit_per_query,
+            instructions=instructions,
+            model=self.config.llm_model,
+        )
+        if self.config.compatibility == OPENAI_COMPATIBILITY:
+            raw = self.http.post_json(
+                self.config.llm_extract_path,
+                _build_openai_recall_planner_payload(payload, self.config.llm_model),
+            )
+            raw = _parse_openai_chat_json(raw)
+        else:
+            raw = self.http.post_json(self.config.llm_extract_path, payload)
+        return _parse_recall_plan_result(
+            raw,
+            task=task,
+            scope=scope,
+            limit_per_query=limit_per_query,
+            model=self.config.llm_model,
         )
 
     def judge_retrieval(
@@ -1137,6 +1241,9 @@ def _safe_route_events(
 def _parse_memory_route_result(
     raw: Any,
     events: list[EventRead],
+    *,
+    recent_events: list[EventRead] | None = None,
+    current_task_state: dict[str, Any] | None = None,
 ) -> RemoteMemoryRouteResult:
     provider = "remote"
     warnings: list[str] = []
@@ -1149,6 +1256,10 @@ def _parse_memory_route_result(
         warnings = _string_list(raw.get("warnings", []))
         metadata_value = raw.get("metadata", {})
         metadata = metadata_value if isinstance(metadata_value, dict) else {"value": metadata_value}
+        task_boundary, task_boundary_warnings = _parse_task_boundary(
+            raw.get("task_boundary") or raw.get("taskBoundary")
+        )
+        warnings.extend(task_boundary_warnings)
         items_raw = raw.get("items", raw.get("routes", raw.get("memory_routes", [])))
         if not items_raw and isinstance(raw.get("candidates"), list):
             items_raw = [
@@ -1156,8 +1267,12 @@ def _parse_memory_route_result(
                 for candidate in raw.get("candidates", [])
                 if isinstance(candidate, dict)
             ]
+        if items_raw is None:
+            items_raw = []
     else:
         raise RemoteAdapterError("remote memory route response must be an object or list")
+    if not isinstance(raw, dict):
+        task_boundary = None
 
     if not isinstance(items_raw, list):
         raise RemoteAdapterError("remote memory route response must contain an items list")
@@ -1179,14 +1294,441 @@ def _parse_memory_route_result(
         except ValidationError as exc:
             raise RemoteAdapterError(f"remote memory route did not match schema: {exc}") from exc
 
-    items, governance_warnings = _govern_memory_route_items(items)
+    items, governance_warnings = _govern_memory_route_items(
+        items,
+        writable_event_ids={event.id for event in events},
+        event_by_id={event.id: event for event in [*events, *(recent_events or [])]},
+    )
     warnings.extend(governance_warnings)
+    task_boundary, boundary_warnings = _govern_task_boundary(
+        task_boundary,
+        events=events,
+        recent_events=recent_events or [],
+        current_task_state=current_task_state or {},
+    )
+    warnings.extend(boundary_warnings)
     return RemoteMemoryRouteResult(
         provider=provider,
         items=items,
+        task_boundary=task_boundary,
         warnings=warnings,
         metadata=metadata,
     )
+
+
+def _parse_task_boundary(raw: Any) -> tuple[TaskBoundaryDecision | None, list[str]]:
+    if raw is None:
+        return None, []
+    if not isinstance(raw, dict):
+        return None, ["invalid_task_boundary"]
+    normalized = dict(raw)
+    warnings: list[str] = []
+    if normalized.get("action") not in {
+        "same_task",
+        "new_task",
+        "switch_task",
+        "task_done",
+        "task_cancelled",
+        "unclear",
+        "no_change",
+    }:
+        normalized["action"] = "unclear"
+        warnings.append("defaulted_task_boundary_action")
+    if normalized.get("confidence") not in {"high", "medium", "low", "unknown"}:
+        normalized["confidence"] = "unknown"
+        warnings.append("defaulted_task_boundary_confidence")
+    if normalized.get("previous_task_status") not in {"active", "done", "cancelled", "unknown"}:
+        normalized["previous_task_status"] = "unknown"
+        warnings.append("defaulted_task_boundary_previous_status")
+    if not isinstance(normalized.get("reason"), str) or not normalized["reason"].strip():
+        normalized["reason"] = "Remote task boundary judge proposed this decision."
+        warnings.append("defaulted_task_boundary_reason")
+    for key in ("current_task_id", "current_task_title", "next_task_title"):
+        value = normalized.get(key)
+        if value is not None and not isinstance(value, str):
+            normalized[key] = str(value)
+            warnings.append(f"coerced_task_boundary_{key}")
+        elif isinstance(value, str) and not value.strip():
+            normalized[key] = None
+    try:
+        return TaskBoundaryDecision.model_validate(normalized), warnings
+    except ValidationError as exc:
+        raise RemoteAdapterError(f"remote task boundary did not match schema: {exc}") from exc
+
+
+def _govern_task_boundary(
+    boundary: TaskBoundaryDecision | None,
+    *,
+    events: list[EventRead],
+    recent_events: list[EventRead],
+    current_task_state: dict[str, Any],
+) -> tuple[TaskBoundaryDecision | None, list[str]]:
+    del recent_events, current_task_state
+    if boundary is None:
+        return None, []
+    has_explicit_switch = _task_boundary_has_explicit_switch_signal(events)
+    if (
+        not has_explicit_switch
+        and _task_boundary_has_explicit_cancel_signal(events)
+        and boundary.action != "task_cancelled"
+    ):
+        return (
+            boundary.model_copy(
+                update={
+                    "action": "task_cancelled",
+                    "confidence": "medium",
+                    "next_task_title": None,
+                    "reason": (
+                        "Local task-boundary gate normalized this to task_cancelled "
+                        "because the current event explicitly stops or cancels the active work."
+                    ),
+                }
+        ),
+        ["normalized_task_boundary_cancel_signal"],
+    )
+    if (
+        not has_explicit_switch
+        and _task_boundary_has_explicit_done_signal(events)
+        and boundary.action != "task_done"
+    ):
+        return (
+            boundary.model_copy(
+                update={
+                    "action": "task_done",
+                    "confidence": "medium",
+                    "next_task_title": None,
+                    "reason": (
+                        "Local task-boundary gate normalized this to task_done because "
+                        "the current event explicitly ends or completes the active work."
+                    ),
+                }
+            ),
+            ["normalized_task_boundary_done_signal"],
+        )
+    if has_explicit_switch:
+        inferred_next = _infer_next_task_title(events) or boundary.next_task_title
+        if boundary.action in {"new_task", "switch_task"}:
+            if boundary.next_task_title or inferred_next is None:
+                return boundary, []
+            return (
+                boundary.model_copy(update={"next_task_title": inferred_next}),
+                ["inferred_task_boundary_next_title"],
+            )
+        return (
+            boundary.model_copy(
+                update={
+                    "action": "switch_task",
+                    "confidence": "medium",
+                    "next_task_title": inferred_next,
+                    "reason": (
+                        "Local task-boundary gate normalized this to switch_task "
+                        "because the current event explicitly starts or moves to another task."
+                    ),
+                }
+            ),
+            ["normalized_task_boundary_switch_signal"],
+        )
+    if boundary.action in {"new_task", "switch_task"}:
+        return _soften_weak_task_switch(boundary, events)
+    return boundary, []
+
+
+def _soften_weak_task_switch(
+    boundary: TaskBoundaryDecision,
+    events: list[EventRead],
+) -> tuple[TaskBoundaryDecision, list[str]]:
+    if boundary.next_task_title:
+        return boundary, []
+    inferred_next = _infer_next_task_title(events)
+    if inferred_next:
+        return (
+            boundary.model_copy(update={"next_task_title": inferred_next}),
+            ["inferred_task_boundary_next_title"],
+        )
+    if boundary.confidence == "high":
+        return boundary, []
+    reason = (
+        "Local task-boundary gate weakened this decision because the remote model "
+        "proposed a task switch without an explicit switch target in the current event."
+    )
+    return (
+        boundary.model_copy(
+            update={
+                "action": "unclear",
+                "confidence": "low",
+                "next_task_title": None,
+                "reason": reason,
+            }
+        ),
+        ["weakened_task_boundary_switch_evidence"],
+    )
+
+
+def _task_boundary_has_explicit_switch_signal(events: list[EventRead]) -> bool:
+    text = _task_boundary_text(events)
+    switch_cues = (
+        "next, work on",
+        "next, implement",
+        "next, do",
+        "next let's",
+        "next step is",
+        "switch to",
+        "move on to",
+        "start working on",
+        "now start",
+        "now work on",
+        "let's work on",
+        "\u63a5\u4e0b\u6765\u505a",
+        "\u4e0b\u4e00\u6b65\u505a",
+        "\u6362\u6210",
+        "\u6362\u4e00\u4e2a",
+        "\u73b0\u5728\u5f00\u59cb",
+        "\u5f00\u59cb\u505a",
+        "\u8fdb\u5165",
+        "\u8f6c\u5230",
+    )
+    return any(cue in text for cue in switch_cues)
+
+
+def _task_boundary_has_explicit_done_signal(events: list[EventRead]) -> bool:
+    text = _task_boundary_text(events)
+    done_cues = (
+        "this part is complete",
+        "this part is done",
+        "this is complete",
+        "this is done",
+        "this is good enough",
+        "good enough for now",
+        "end this step",
+        "stop here",
+        "\u8fd9\u90e8\u5206\u5b8c\u6210\u4e86",
+        "\u8fd9\u4e2a\u5df2\u7ecf\u53ef\u4ee5\u4e86",
+        "\u8fd9\u4e00\u6b65\u7ed3\u675f",
+        "\u5148\u505c\u5728\u8fd9\u91cc",
+        "\u6682\u65f6\u4e0d\u7528\u7ee7\u7eed",
+    )
+    return any(cue in text for cue in done_cues)
+
+
+def _task_boundary_has_explicit_cancel_signal(events: list[EventRead]) -> bool:
+    text = _task_boundary_text(events)
+    cancel_cues = (
+        "cancel this",
+        "cancel the",
+        "do not work on",
+        "not continuing",
+        "we are not continuing",
+        "stop; we are not continuing",
+        "stop, we are not continuing",
+        "\u4e0d\u505a\u4e86",
+        "\u53d6\u6d88",
+        "\u5148\u522b\u7ba1",
+        "\u522b\u7ba1\u8fd9\u4e2a",
+        "\u505c\uff0c\u4e0d\u7ee7\u7eed",
+        "\u505c,\u4e0d\u7ee7\u7eed",
+    )
+    return any(cue in text for cue in cancel_cues)
+
+
+def _infer_next_task_title(events: list[EventRead]) -> str | None:
+    raw_text = " ".join(event.content.strip() for event in events if event.content.strip())
+    patterns = (
+        r"\u6362\u6210(.+)",
+        r"\u63a5\u4e0b\u6765\u5f00\u59cb\u505a(.+)",
+        r"\u63a5\u4e0b\u6765\u505a(.+)",
+        r"\u4e0b\u4e00\u6b65\u505a(.+)",
+        r"\u73b0\u5728\u8fdb\u5165(.+)",
+        r"\u8fdb\u5165(.+)",
+        r"\u8f6c\u5230(.+)",
+        r"next,\s*work on\s+(.+)",
+        r"next,\s*implement\s+(.+)",
+        r"next,\s*do\s+(.+)",
+        r"move on to\s+(.+)",
+        r"switch to\s+(.+)",
+        r"work on\s+(.+)",
+        r"start working on\s+(.+)",
+        r"now start\s+(.+)",
+        r"let's work on\s+(.+)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, raw_text, flags=re.IGNORECASE)
+        if match:
+            title = _clean_inferred_task_title(match.group(1))
+            if title:
+                return title
+    return None
+
+
+def _clean_inferred_task_title(text: str) -> str | None:
+    title = re.split(r"[.?!;；。！？]", text.strip(), maxsplit=1)[0].strip()
+    title = re.sub(r"^(the|a|an)\s+", "", title, flags=re.IGNORECASE).strip()
+    return title or None
+
+
+def _task_boundary_text(events: list[EventRead]) -> str:
+    return "\n".join(event.content for event in events).lower()
+
+
+def _parse_session_closeout_result(
+    raw: Any,
+    *,
+    session_id: str,
+    session_memories: list[SessionMemoryItemRead],
+    task_boundary: TaskBoundaryDecision | None,
+) -> SessionCloseoutResult:
+    if not isinstance(raw, dict):
+        raise RemoteAdapterError("remote session closeout response must be an object")
+    provider = str(raw.get("provider") or "remote")
+    metadata = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {}
+    warnings = _string_list(raw.get("warnings"))
+    task_summary = _optional_text(raw.get("task_summary") or raw.get("summary"))
+    items_by_id = {item.id: item for item in session_memories}
+    decisions_raw = raw.get("decisions", raw.get("items", []))
+    if not isinstance(decisions_raw, list):
+        raise RemoteAdapterError("remote session closeout response must contain a decisions list")
+
+    decisions: list[SessionCloseoutDecision] = []
+    decided_ids: set[str] = set()
+    for raw_decision in decisions_raw:
+        if not isinstance(raw_decision, dict):
+            warnings.append("invalid_closeout_decision")
+            continue
+        memory_id = str(
+            raw_decision.get("session_memory_id")
+            or raw_decision.get("memory_id")
+            or raw_decision.get("id")
+            or ""
+        ).strip()
+        item = items_by_id.get(memory_id)
+        if item is None:
+            warnings.append(f"unknown_closeout_session_memory:{memory_id or '<empty>'}")
+            continue
+        action = str(raw_decision.get("action") or "keep").strip().lower()
+        if action not in REMOTE_CLOSEOUT_ACTIONS:
+            action = "keep"
+            warnings.append("defaulted_closeout_action")
+        reason = str(raw_decision.get("reason") or "Remote closeout judge proposed this action.").strip()
+        summary = _optional_text(raw_decision.get("summary"))
+        candidate = None
+        if action == "promote_candidate":
+            candidate, candidate_warnings = _closeout_candidate_from_raw(raw_decision.get("candidate"), item)
+            warnings.extend(candidate_warnings)
+            if candidate is None:
+                action = "summarize"
+                summary = summary or item.content
+                warnings.append("downgraded_closeout_promotion_without_candidate")
+        decisions.append(
+            SessionCloseoutDecision(
+                session_memory_id=item.id,
+                action=action,
+                reason=reason,
+                summary=summary,
+                candidate=candidate,
+            )
+        )
+        decided_ids.add(item.id)
+
+    for item in session_memories:
+        if item.id in decided_ids:
+            continue
+        decisions.append(
+            SessionCloseoutDecision(
+                session_memory_id=item.id,
+                action="keep",
+                reason="Remote closeout judge did not return a decision for this item.",
+            )
+        )
+        warnings.append(f"defaulted_missing_closeout_decision:{item.id}")
+
+    return SessionCloseoutResult(
+        provider=provider,
+        session_id=session_id,
+        task_summary=task_summary,
+        task_boundary=task_boundary,
+        decisions=decisions,
+        warnings=warnings,
+        metadata=metadata,
+    )
+
+
+def _closeout_candidate_from_raw(
+    raw: Any,
+    item: SessionMemoryItemRead,
+) -> tuple[MemoryCandidateCreate | None, list[str]]:
+    warnings: list[str] = []
+    if not isinstance(raw, dict):
+        return None, ["missing_closeout_candidate"]
+    content = str(raw.get("content") or raw.get("claim") or item.content).strip()
+    if not content:
+        return None, ["missing_closeout_candidate_content"]
+    if _contains_sensitive_remote_text(content):
+        return None, ["filtered_sensitive_closeout_candidate"]
+    memory_type = str(raw.get("memory_type") or _memory_type_from_session_closeout(item)).strip()
+    if memory_type not in REMOTE_MEMORY_TYPES:
+        memory_type = _memory_type_from_session_closeout(item)
+        warnings.append("defaulted_closeout_candidate_memory_type")
+    evidence_type = str(raw.get("evidence_type") or "inferred").strip()
+    if evidence_type not in REMOTE_EVIDENCE_TYPES:
+        evidence_type = "inferred"
+        warnings.append("defaulted_closeout_candidate_evidence_type")
+    time_validity = str(raw.get("time_validity") or "persistent").strip()
+    if time_validity not in {"persistent", "until_changed"}:
+        time_validity = "persistent"
+        warnings.append("defaulted_closeout_candidate_time_validity")
+    confidence = str(raw.get("confidence") or "likely").strip()
+    if confidence not in REMOTE_CONFIDENCES:
+        confidence = "likely"
+        warnings.append("defaulted_closeout_candidate_confidence")
+    risk = str(raw.get("risk") or "low").strip()
+    if risk not in REMOTE_RISKS:
+        risk = "low"
+        warnings.append("defaulted_closeout_candidate_risk")
+    scores_raw = raw.get("scores") if isinstance(raw.get("scores"), dict) else {}
+    try:
+        scores = CandidateScores.model_validate(scores_raw)
+    except ValidationError:
+        scores = CandidateScores(long_term=0.6, evidence=0.6, reuse=0.5, risk=0.1)
+        warnings.append("defaulted_closeout_candidate_scores")
+    source_event_ids = _string_list(raw.get("source_event_ids")) or list(item.source_event_ids)
+    if not source_event_ids:
+        source_event_ids = [item.id]
+        warnings.append("defaulted_closeout_candidate_source_event_ids")
+    try:
+        return (
+            MemoryCandidateCreate(
+                content=content,
+                memory_type=memory_type,
+                scope=str(raw.get("scope") or item.scope or "session").strip(),
+                subject=str(raw.get("subject") or item.subject).strip(),
+                source_event_ids=source_event_ids,
+                reason=str(
+                    raw.get("reason")
+                    or "Promoted from session closeout because it may be reusable."
+                ).strip(),
+                claim=_optional_text(raw.get("claim")) or content,
+                evidence_type=evidence_type,
+                time_validity=time_validity,
+                reuse_cases=_string_list(raw.get("reuse_cases")) or ["future_similar_tasks"],
+                scores=scores,
+                confidence=confidence,
+                risk=risk,
+            ),
+            warnings,
+        )
+    except ValidationError:
+        return None, [*warnings, "invalid_closeout_candidate"]
+
+
+def _memory_type_from_session_closeout(item: SessionMemoryItemRead) -> MemoryType:
+    if item.memory_type == "temporary_rule":
+        return "workflow"
+    if item.memory_type == "pending_decision":
+        return "decision"
+    if item.memory_type == "working_fact":
+        return "project_fact"
+    if item.memory_type == "emotional_state":
+        return "reflection"
+    return "reflection"
 
 
 def _flatten_route_item(item: dict[str, Any]) -> dict[str, Any]:
@@ -1211,12 +1753,17 @@ def _with_route_defaults(item: dict[str, Any], events: list[EventRead]) -> dict[
     primary_event = event_by_id.get(source_event_ids[0]) if source_event_ids else None
     primary_event = primary_event or (events[0] if events else None)
     if primary_event is not None:
-        routed.setdefault("content", primary_event.content)
-        routed.setdefault("scope", primary_event.scope)
-        routed.setdefault("subject", primary_event.source)
+        if not isinstance(routed.get("content"), str) or not routed["content"].strip():
+            routed["content"] = primary_event.content
+        if not isinstance(routed.get("scope"), str) or not routed["scope"].strip():
+            routed["scope"] = primary_event.scope
+        if not isinstance(routed.get("subject"), str) or not routed["subject"].strip():
+            routed["subject"] = primary_event.source
     routed["source_event_ids"] = source_event_ids
-    routed.setdefault("reason", "Remote route judge proposed this memory route.")
-    routed.setdefault("claim", routed.get("content"))
+    if not isinstance(routed.get("reason"), str) or not routed["reason"].strip():
+        routed["reason"] = "Remote route judge proposed this memory route."
+    if not isinstance(routed.get("claim"), str) or not routed["claim"].strip():
+        routed["claim"] = routed.get("content")
     return routed
 
 
@@ -1266,11 +1813,31 @@ def _normalize_route_item_data(item: dict[str, Any]) -> tuple[dict[str, Any], li
 
 def _govern_memory_route_items(
     items: list[MemoryRouteItem],
+    *,
+    writable_event_ids: set[str] | None = None,
+    event_by_id: dict[str, EventRead] | None = None,
 ) -> tuple[list[MemoryRouteItem], list[str]]:
     warnings: list[str] = []
     governed: list[MemoryRouteItem] = []
     seen: set[tuple[str, str, str]] = set()
     for item in items:
+        if (
+            writable_event_ids is not None
+            and item.route != "ignore"
+            and not (set(item.source_event_ids) & writable_event_ids)
+        ):
+            warnings.append("filtered_context_only_route_item")
+            continue
+
+        if (
+            writable_event_ids is not None
+            and event_by_id is not None
+            and item.route in {"long_term", "session"}
+            and _route_item_has_only_ack_writable_sources(item, writable_event_ids, event_by_id)
+        ):
+            warnings.append("filtered_ack_only_route_item")
+            continue
+
         if _contains_sensitive_remote_text(item.content) or _contains_sensitive_remote_text(
             item.claim or ""
         ):
@@ -1327,6 +1894,96 @@ def _route_session_type_from_item(item: MemoryRouteItem) -> str:
     return "scratch_note"
 
 
+def _route_item_has_only_ack_writable_sources(
+    item: MemoryRouteItem,
+    writable_event_ids: set[str],
+    event_by_id: dict[str, EventRead],
+) -> bool:
+    writable_sources = [
+        event_by_id[event_id]
+        for event_id in item.source_event_ids
+        if event_id in writable_event_ids and event_id in event_by_id
+    ]
+    if not writable_sources or not all(
+        _is_ack_only_route_event(event.content) for event in writable_sources
+    ):
+        return False
+    context_sources = [
+        event_by_id[event_id]
+        for event_id in item.source_event_ids
+        if event_id not in writable_event_ids and event_id in event_by_id
+    ]
+    return not any(_is_confirmable_assistant_memory_proposal(event) for event in context_sources)
+
+
+def _is_ack_only_route_event(text: str) -> bool:
+    normalized = re.sub(r"[\s\W_]+", "", text, flags=re.UNICODE).lower()
+    if not normalized:
+        return True
+    ack_values = {
+        "ok",
+        "okay",
+        "yes",
+        "yep",
+        "sure",
+        "good",
+        "fine",
+        "thanks",
+        "thankyou",
+        "gotit",
+        "understood",
+        "可以",
+        "好的",
+        "好",
+        "嗯",
+        "嗯嗯",
+        "行",
+        "对",
+        "是的",
+        "没错",
+        "收到",
+        "明白",
+        "了解",
+        "谢谢",
+        "继续",
+    }
+    return normalized in ack_values
+
+
+def _is_confirmable_assistant_memory_proposal(event: EventRead) -> bool:
+    if event.event_type != "assistant_message":
+        return False
+    lowered = event.content.lower()
+    memory_cues = (
+        "以后",
+        "默认",
+        "长期",
+        "记住",
+        "偏好",
+        "future",
+        "going forward",
+        "default",
+        "remember",
+        "preference",
+    )
+    proposal_cues = (
+        "是否",
+        "要不要",
+        "可以",
+        "建议",
+        "吗",
+        "?",
+        "should",
+        "would you like",
+        "do you want",
+        "can i",
+        "i suggest",
+    )
+    return any(cue in lowered for cue in memory_cues) and any(
+        cue in lowered for cue in proposal_cues
+    )
+
+
 def route_item_to_memory_candidate(
     item: MemoryRouteItem,
     event: EventRead | None = None,
@@ -1357,6 +2014,8 @@ def _build_memory_route_payload(
     events: list[EventRead],
     *,
     recent_events: list[EventRead],
+    current_task_state: dict[str, Any] | None,
+    active_session_memories: list[dict[str, Any]],
     instructions: str,
     model: str,
 ) -> dict[str, Any]:
@@ -1365,7 +2024,35 @@ def _build_memory_route_payload(
         "model": model,
         "events": [event.model_dump(mode="json") for event in events],
         "recent_events": [event.model_dump(mode="json") for event in recent_events],
+        "event_roles": {
+            "events": (
+                "Writable source events. Only these events may trigger long_term, "
+                "session, reject, or ask_user route items."
+            ),
+            "recent_events": (
+                "Read-only context. Use it to resolve references, judge long_term "
+                "versus session, and decide task boundaries, but do not create a "
+                "memory item from recent_events alone."
+            ),
+        },
+        "source_id_policy": [
+            "Every non-ignore item must include at least one source_event_ids value from events[].id.",
+            "A non-ignore item may also include recent_events[].id as supporting context.",
+            "Never emit a non-ignore item whose source_event_ids only come from recent_events.",
+            "Acknowledgement-only events such as ok, yes, 好的, 可以, 收到, or 明白 do not create long_term/session memory unless the item also cites the assistant proposal being confirmed.",
+        ],
+        "current_task_state": current_task_state or {},
+        "active_session_memories": active_session_memories,
         "instructions": instructions,
+        "task_boundary_actions": [
+            "same_task",
+            "new_task",
+            "switch_task",
+            "task_done",
+            "task_cancelled",
+            "unclear",
+            "no_change",
+        ],
         "routes": {
             "long_term": "Stable reusable memory for future conversations or tasks.",
             "session": (
@@ -1375,7 +2062,10 @@ def _build_memory_route_payload(
             ),
             "ignore": "Low-information replies, greetings, thanks, simple confirmations, or chatter.",
             "reject": "Sensitive, unsafe, or private-secret content.",
-            "ask_user": "Immediate user confirmation is required before proceeding.",
+            "ask_user": (
+                "Immediate user confirmation is required before proceeding, especially "
+                "explicit ask/confirm-before-continuing instructions."
+            ),
         },
         "session_memory_types": [
             "task_state",
@@ -1389,6 +2079,18 @@ def _build_memory_route_payload(
             "provider": "string",
             "warnings": ["string"],
             "metadata": {},
+            "task_boundary": {
+                "action": (
+                    "same_task|new_task|switch_task|task_done|"
+                    "task_cancelled|unclear|no_change"
+                ),
+                "confidence": "high|medium|low|unknown",
+                "current_task_id": "string|null",
+                "current_task_title": "string|null",
+                "next_task_title": "string|null",
+                "previous_task_status": "active|done|cancelled|unknown",
+                "reason": "why this task boundary was selected",
+            },
             "items": [
                 {
                     "route": "long_term|session|ignore|reject|ask_user",
@@ -1404,7 +2106,9 @@ def _build_memory_route_payload(
                     ),
                     "scope": "string",
                     "subject": "string",
-                    "source_event_ids": ["string"],
+                    "source_event_ids": [
+                        "at least one events[].id, optionally plus recent_events[].id"
+                    ],
                     "claim": "string",
                     "evidence_type": (
                         "direct_user_statement|file_observation|tool_result|test_result|"
@@ -1422,6 +2126,63 @@ def _build_memory_route_payload(
                     "confidence": "confirmed|likely|inferred|unknown",
                     "risk": "low|medium|high",
                     "metadata": {},
+                }
+            ],
+        },
+    }
+
+
+def _build_session_closeout_payload(
+    *,
+    session_id: str,
+    session_memories: list[SessionMemoryItemRead],
+    task_boundary: TaskBoundaryDecision | None,
+    current_task_state: dict[str, Any],
+    recent_events: list[EventRead],
+    instructions: str | None,
+    model: str,
+) -> dict[str, Any]:
+    return {
+        "schema": "memory_system.session_closeout.v1",
+        "model": model,
+        "session_id": session_id,
+        "task_boundary": task_boundary.model_dump(mode="json") if task_boundary else None,
+        "current_task_state": current_task_state,
+        "recent_events": [event.model_dump(mode="json") for event in recent_events],
+        "session_memories": [item.model_dump(mode="json") for item in session_memories],
+        "instructions": instructions
+        or (
+            "Classify each session memory at task closeout. Use keep only if the item is still "
+            "needed after the boundary. Use discard for transient details, temporary rules, "
+            "scratch notes, and emotional states that should not persist. Use summarize for "
+            "items useful only as part of a short task recap. Use promote_candidate only for "
+            "stable, verified, reusable facts, workflows, decisions, troubleshooting lessons, "
+            "or durable user preferences. Never promote secrets or sensitive content. Return "
+            "exactly one decision for every session_memories item and copy the exact "
+            "session_memories[].id into session_memory_id; do not omit undecided items."
+        ),
+        "actions": {
+            "keep": "Still useful after this boundary; leave active.",
+            "discard": "No longer useful after task closeout; dismiss it.",
+            "summarize": "Use only in the task_summary; dismiss the original item.",
+            "promote_candidate": (
+                "Convert into a long-term MemoryCandidateCreate candidate for local policy gate."
+            ),
+        },
+        "output": {
+            "provider": "string",
+            "warnings": ["string"],
+            "metadata": {},
+            "task_summary": "short task recap or null",
+            "decisions": [
+                {
+                    "session_memory_id": "one of session_memories[].id",
+                    "action": "keep|discard|summarize|promote_candidate",
+                    "reason": "why this closeout action was selected",
+                    "summary": "short recap text when action=summarize, otherwise null",
+                    "candidate": (
+                        "MemoryCandidateCreate object when action=promote_candidate, otherwise null"
+                    ),
                 }
             ],
         },
@@ -1481,6 +2242,178 @@ def _build_recall_judge_payload(
             "warnings": ["string"],
             "metadata": {},
         },
+    }
+
+
+def _build_recall_planner_payload(
+    *,
+    task: str,
+    scope: str | None,
+    limit_per_query: int,
+    instructions: str | None,
+    model: str,
+) -> dict[str, Any]:
+    return {
+        "schema": "memory_system.remote_recall_planner.v1",
+        "model": model,
+        "task": task,
+        "scope": scope,
+        "limit_per_query": limit_per_query,
+        "instructions": instructions,
+        "allowed": {
+            "memory_types": sorted(REMOTE_MEMORY_TYPES),
+            "strategies": sorted(REMOTE_RECALL_STRATEGIES),
+            "planner_sources": ["remote"],
+        },
+        "output": {
+            "intent": "string",
+            "facets": ["verification|troubleshooting|memory_system|remote|continuation|language|..."],
+            "identifiers": ["string"],
+            "constraints": {},
+            "query_terms": ["few focused search queries"],
+            "memory_types": ["allowed memory type"],
+            "scopes": ["scope string"],
+            "strategy_hint": "auto|keyword|guarded_hybrid|selective_llm_guarded_hybrid",
+            "include_graph": "boolean",
+            "include_session": "boolean",
+            "needs_llm_judge": "boolean",
+            "confidence": "0.0-1.0",
+            "reasons": ["string"],
+            "warnings": ["string"],
+        },
+    }
+
+
+def _parse_recall_plan_result(
+    raw: Any,
+    *,
+    task: str,
+    scope: str | None,
+    limit_per_query: int,
+    model: str,
+) -> RecallPlan:
+    if not isinstance(raw, dict):
+        raise RemoteAdapterError("remote recall planner response must be an object")
+    payload = raw.get("plan") if isinstance(raw.get("plan"), dict) else raw
+    warnings = _string_list(payload.get("warnings", []))
+
+    memory_types = [
+        item for item in _string_list(payload.get("memory_types", [])) if item in REMOTE_MEMORY_TYPES
+    ]
+    if not memory_types:
+        memory_types = ["user_preference", "project_fact", "workflow"]
+        warnings.append("remote_planner_missing_memory_types")
+
+    query_terms = _string_list(payload.get("query_terms", []))
+    if not query_terms:
+        query_terms = [task]
+        warnings.append("remote_planner_missing_query_terms")
+    query_terms = query_terms[:10]
+
+    scopes = _recall_plan_scopes(payload.get("scopes", []), scope)
+
+    strategy_raw = str(payload.get("strategy_hint") or "auto").strip()
+    strategy_hint: RecallStrategy
+    if strategy_raw in REMOTE_RECALL_STRATEGIES:
+        strategy_hint = strategy_raw  # type: ignore[assignment]
+    else:
+        strategy_hint = "auto"
+        warnings.append(f"invalid_remote_planner_strategy:{strategy_raw}")
+
+    confidence = _bounded_float(payload.get("confidence"), default=0.5)
+    constraints_value = payload.get("constraints", {})
+    constraints = constraints_value if isinstance(constraints_value, dict) else {"value": constraints_value}
+
+    try:
+        return RecallPlan(
+            task=task,
+            scope=scope.strip() if scope and scope.strip() else None,
+            intent=str(payload.get("intent") or "general").strip() or "general",
+            query_terms=query_terms,
+            memory_types=memory_types,  # type: ignore[arg-type]
+            scopes=scopes,
+            limit_per_query=limit_per_query,
+            reasons=_string_list(payload.get("reasons", [])) or ["remote recall planner"],
+            facets=_string_list(payload.get("facets", [])),
+            identifiers=_string_list(payload.get("identifiers", [])),
+            constraints=constraints,
+            strategy_hint=strategy_hint,
+            include_graph=_coerce_bool(payload.get("include_graph"), default=False),
+            include_session=_coerce_bool(payload.get("include_session"), default=True),
+            needs_llm_judge=_coerce_bool(payload.get("needs_llm_judge"), default=False),
+            confidence=confidence,
+            planner_source="remote",
+            planner_warnings=[*warnings, f"model={model}"],
+        )
+    except ValidationError as exc:
+        raise RemoteAdapterError(f"remote recall planner did not match schema: {exc}") from exc
+
+
+def _recall_plan_scopes(raw_scopes: Any, scope: str | None) -> list[str]:
+    scopes = _string_list(raw_scopes)
+    requested_scope = scope.strip() if scope and scope.strip() else None
+    if requested_scope and requested_scope not in scopes:
+        scopes.insert(0, requested_scope)
+    if "global" not in scopes:
+        scopes.append("global")
+    return scopes
+
+
+def _bounded_float(value: Any, *, default: float) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    return max(0.0, min(1.0, number))
+
+
+def _coerce_bool(value: Any, *, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "y", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "n", "off"}:
+            return False
+    return default
+
+
+def _build_openai_recall_planner_payload(
+    payload: dict[str, Any],
+    model: str,
+) -> dict[str, Any]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a recall planner for an agent memory system. "
+                    "Return only a valid JSON object. Do not include markdown. "
+                    "Your job is to understand the task and produce a structured "
+                    "recall plan, not a long keyword list. Prefer a few focused "
+                    "query_terms. Use allowed memory_types and strategy_hint values only. "
+                    "Set include_session for continuation, pending decisions, current "
+                    "task constraints, or references such as previous/continue/刚才/继续. "
+                    "Set include_graph for architecture, module relationship, or memory "
+                    "system relationship questions. Use guarded_hybrid for semantic or "
+                    "remote/model/evaluation tasks when available, keyword for exact "
+                    "commands or identifiers, and selective_llm_guarded_hybrid only when "
+                    "LLM judging is useful for noisy or ambiguous recall."
+                ),
+            },
+            {
+                "role": "user",
+                "content": json.dumps(payload, ensure_ascii=False, default=str),
+            },
+        ],
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
     }
 
 
@@ -2271,14 +3204,51 @@ def _with_remote_route_instructions(instructions: str | None) -> str:
         "durable, including temporary constraints, working state, pending decisions, "
         "and current emotional or comprehension state; use ignore for common replies, "
         "thanks, greetings, simple confirmations, or chatter with no memory value; "
+        "do not collapse a compound event into one route. If one event contains both "
+        "a durable preference/workflow and a temporary current-task state, return "
+        "separate long_term and session items for the same source event. "
+        "Phrases such as by default, going forward, future reports, future answers, "
+        "or long-term preference usually indicate long_term/user_preference when "
+        "they describe the user's preferred answer, report, or explanation style. "
         "use reject for sensitive/private-secret content; use ask_user only when "
-        "immediate user confirmation is required before proceeding. "
+        "the user explicitly instructs the agent to ask now, pause, stop, or not "
+        "proceed before immediate confirmation. Route that item as ask_user, not "
+        "session/pending_decision and not long_term/decision. "
+        "Inside compound events, still extract a separate ask_user item for any "
+        "clause that says ask me before proceeding, do not proceed until confirmed, "
+        "or equivalent Chinese instructions such as 先问我/没确认不要动. "
         "When a possible future long-term preference or project rule is explicitly "
         "uncertain but useful to keep in the current conversation, use "
         "session with session_memory_type=pending_decision instead of ask_user. "
+        "A phrase like 'pending confirmation' by itself is a pending_decision "
+        "record, not ask_user, unless it also tells the agent to ask or block now. "
+        "Validation order, release order, test order, or fixed repo process should "
+        "be long_term/workflow when stated as a durable procedure. "
         "For session emotional state, do not make a stable personality claim; describe "
         "only the current state needed to adjust the ongoing interaction. "
-        "Every non-ignore item must include source_event_ids and one atomic claim."
+        "Every non-ignore item must include source_event_ids and one atomic claim. "
+        "Treat events as the only writable source events. Treat recent_events as "
+        "read-only context that can resolve references, help decide long_term versus "
+        "session, and help judge task boundaries, but must not create memory by "
+        "itself. Every non-ignore item must cite at least one events[].id in "
+        "source_event_ids; it may also cite recent_events[].id as supporting context. "
+        "Never emit a non-ignore item whose source_event_ids only come from "
+        "recent_events. Simple acknowledgement-only events such as ok, yes, 好的, "
+        "可以, 收到, or 明白 must not create long_term or session memory from "
+        "recent_events by themselves; only treat them as memory confirmation when "
+        "source_event_ids also cites the specific assistant proposal being confirmed."
+        " Also judge task boundaries from events plus recent_events and current_task_state. "
+        "Use same_task/no_change when the user continues the current work, new_task or "
+        "switch_task only for clear semantic task starts or pivots, task_done when the "
+        "user says the work is complete, task_cancelled when the user stops or abandons it, "
+        "and unclear when context is insufficient. Judge by whether the delivery goal "
+        "changed, not by whether the user mentioned a new action. Testing, verifying, "
+        "rerunning, explaining, giving examples, syncing docs, or repairing the current "
+        "change are usually same_task. Do not infer a task switch from a short "
+        "acknowledgement unless recent_events clearly show the user is accepting a proposed "
+        "next task. If recent_events proposed a next task and the current user event accepts "
+        "it, and that proposed task differs from current_task_state.title, use switch_task "
+        "or new_task with high confidence."
     )
     return f"{base.rstrip()}{governance}"
 
@@ -2444,21 +3414,99 @@ def _build_openai_memory_route_payload(
                 "role": "system",
                 "content": (
                     "You are a strict memory route judge for an agent. "
-                    "Return only a valid JSON object with an items array. "
+                    "Return only a valid JSON object with an items array and task_boundary. "
                     "Route each atomic item as long_term, session, ignore, reject, or ask_user. "
                     "Use long_term only for stable reusable future memory. "
                     "Use session for current conversation or task value, including temporary "
                     "constraints, working state, pending decisions, and current emotional "
                     "or comprehension state. "
+                    "Do not collapse a compound event into one route. If one event contains "
+                    "both a durable preference/workflow and a temporary current-task state, "
+                    "return separate long_term and session items for the same source event. "
+                    "Phrases such as by default, going forward, future reports, future "
+                    "answers, or long-term preference usually indicate "
+                    "long_term/user_preference when they describe the user's preferred "
+                    "answer, report, or explanation style. "
                     "Use ignore for common replies, greetings, thanks, simple confirmations, "
                     "and low-information chatter. "
                     "Use reject for sensitive or private-secret content. "
                     "Use session with session_memory_type=pending_decision for uncertain "
                     "possible future preferences or project rules that should be retained "
                     "during the current conversation. "
-                    "Use ask_user only when immediate confirmation is required before proceeding. "
+                    "Use ask_user only when the user explicitly instructs the agent to ask "
+                    "now, pause, stop, or not proceed before immediate confirmation. "
+                    "Do not route those blocking-confirmation instructions as "
+                    "session/pending_decision or long_term/decision. "
+                    "Inside compound events, still extract a separate ask_user item for "
+                    "any clause that says ask me before proceeding, do not proceed until "
+                    "confirmed, or equivalent Chinese instructions such as 先问我/没确认不要动. "
+                    "A phrase like 'pending confirmation' by itself is a "
+                    "session/pending_decision record, not ask_user, unless it also tells "
+                    "the agent to ask or block now. "
+                    "Validation order, release order, test order, or fixed repo process "
+                    "should be long_term/workflow when stated as a durable procedure. "
                     "Never turn current emotional state into a stable personality claim. "
-                    "Every non-ignore item must include source_event_ids."
+                    "Every non-ignore item must include source_event_ids. "
+                    "Treat events as the only writable source events. Treat "
+                    "recent_events as read-only context that can resolve references, "
+                    "help decide long_term versus session, and help judge task "
+                    "boundaries, but must not create memory by itself. Every non-ignore "
+                    "item must cite at least one events[].id in source_event_ids; it may "
+                    "also cite recent_events[].id as supporting context. Never emit a "
+                    "non-ignore item whose source_event_ids only come from recent_events. "
+                    "Simple acknowledgement-only events such as ok, yes, 好的, 可以, "
+                    "收到, or 明白 must not create long_term or session memory from "
+                    "recent_events by themselves; only treat them as memory confirmation "
+                    "when source_event_ids also cites the specific assistant proposal "
+                    "being confirmed."
+                    " Also return task_boundary by judging task continuity from events, "
+                    "recent_events, and current_task_state. Use same_task/no_change when "
+                    "the user continues the current work, new_task or switch_task only for "
+                    "clear semantic task starts or pivots, task_done when work is complete, "
+                    "task_cancelled when the user stops or abandons it, and unclear when "
+                    "context is insufficient. Judge by whether the delivery goal changed, "
+                    "not by whether the user mentioned a new action. Testing, verifying, "
+                    "rerunning, explaining, giving examples, syncing docs, or repairing "
+                    "the current change are usually same_task. Do not infer a task switch from a short "
+                    "acknowledgement unless recent_events clearly show the user is accepting "
+                    "a proposed next task. If recent_events proposed a next task and the "
+                    "current user event accepts it, and that proposed task differs from "
+                    "current_task_state.title, use switch_task or new_task with high confidence."
+                ),
+            },
+            {
+                "role": "user",
+                "content": json.dumps(payload, ensure_ascii=False, default=str),
+            },
+        ],
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
+    }
+
+
+def _build_openai_session_closeout_payload(
+    payload: dict[str, Any],
+    model: str,
+) -> dict[str, Any]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a strict session memory closeout judge for an agent. "
+                    "Return only a valid JSON object with task_summary and decisions. "
+                    "You are deciding what to do with short-term session memories when "
+                    "a task is done, cancelled, or switched. Use keep only when an item "
+                    "is still needed after the boundary. Use discard for temporary "
+                    "rules, scratch notes, transient task state, and current emotional "
+                    "states that should not persist. Use summarize for items useful "
+                    "only in a task recap. Use promote_candidate only for stable, "
+                    "verified, reusable facts, workflows, decisions, troubleshooting "
+                    "lessons, or durable user preferences. Promoted candidates must "
+                    "follow MemoryCandidateCreate and still pass local policy later. "
+                    "Never promote sensitive content or secrets. Return one decision "
+                    "for every session_memories[].id."
                 ),
             },
             {
@@ -2554,7 +3602,12 @@ def _build_openai_recall_judge_batch_payload(
 
 def _parse_openai_chat_json(raw: Any) -> Any:
     if isinstance(raw, dict) and (
-        "candidates" in raw or "results" in raw or "items" in raw or "routes" in raw
+        "candidates" in raw
+        or "results" in raw
+        or "items" in raw
+        or "routes" in raw
+        or "plan" in raw
+        or "query_terms" in raw
     ):
         return raw
     if not isinstance(raw, dict):

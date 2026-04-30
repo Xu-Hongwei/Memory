@@ -218,6 +218,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Context-only event id. Can be passed multiple times.",
     )
     remote_route.add_argument("--session-id", default="default")
+    remote_route.add_argument("--current-task-id")
+    remote_route.add_argument("--current-task-title")
+    remote_route.add_argument(
+        "--current-task-status",
+        choices=["active", "done", "cancelled", "unknown"],
+    )
     remote_route.add_argument("--instructions")
     remote_route.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     remote_route.set_defaults(func=_cmd_remote_route)
@@ -710,9 +716,19 @@ def _cmd_remote_route(args: argparse.Namespace, store: MemoryStore) -> int:
         _require_event(event_log, event_id)
         for event_id in args.recent_event_ids
     ]
+    current_task_state = {
+        key: value
+        for key, value in {
+            "task_id": args.current_task_id,
+            "title": args.current_task_title,
+            "status": args.current_task_status,
+        }.items()
+        if value
+    }
     routed = RemoteLLMClient(RemoteAdapterConfig.llm_from_env()).route_memories(
         events,
         recent_events=recent_events,
+        current_task_state=current_task_state,
         instructions=args.instructions,
     )
 
@@ -780,12 +796,19 @@ def _cmd_remote_route(args: argparse.Namespace, store: MemoryStore) -> int:
         "ignored": ignored,
         "rejected": rejected,
         "ask_user": ask_user,
+        "task_boundary": (
+            routed.task_boundary.model_dump(mode="json")
+            if routed.task_boundary is not None
+            else None
+        ),
         "warnings": routed.warnings,
         "metadata": {
             **routed.metadata,
             "event_ids": [event.id for event in events],
             "recent_event_ids": [event.id for event in recent_events],
             "session_id": args.session_id,
+            "current_task_state": current_task_state,
+            "task_boundary_observed": routed.task_boundary is not None,
             "auto_committed": False,
             "session_persisted": False,
         },
@@ -800,6 +823,13 @@ def _cmd_remote_route(args: argparse.Namespace, store: MemoryStore) -> int:
         print(f"Ignored: {len(ignored)}")
         print(f"Rejected: {len(rejected)}")
         print(f"Ask user: {len(ask_user)}")
+        if routed.task_boundary is not None:
+            boundary = routed.task_boundary
+            print(
+                "Task boundary: "
+                f"{boundary.action}/{boundary.confidence} "
+                f"next={boundary.next_task_title or '-'}"
+            )
         for item in long_term:
             candidate = item["candidate"]
             decision = item["decision"]

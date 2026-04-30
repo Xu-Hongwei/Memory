@@ -10,6 +10,7 @@ from memory_system.schemas import (
     MemoryCandidateCreate,
     MemoryItemRead,
     MemoryRouteItem,
+    SessionCloseoutDecision,
     SessionMemoryExtractionResult,
     SessionMemoryItemCreate,
     SessionMemoryItemRead,
@@ -65,6 +66,14 @@ PENDING_DECISION_CUES = (
     "pending confirmation",
     "wait until confirmed",
 )
+SESSION_TYPE_BASE_SCORES: dict[SessionMemoryType, float] = {
+    "pending_decision": 0.9,
+    "temporary_rule": 0.8,
+    "task_state": 0.65,
+    "working_fact": 0.6,
+    "emotional_state": 0.55,
+    "scratch_note": 0.35,
+}
 
 
 class SessionMemoryStore:
@@ -190,6 +199,53 @@ class SessionMemoryStore:
         for item_id in to_delete:
             del self._items[item_id]
         return len(to_delete)
+
+    def dismiss_items(
+        self,
+        item_ids: list[str],
+        *,
+        reason: str = "Session memory dismissed during closeout.",
+        action: str = "closeout",
+        now: datetime | None = None,
+    ) -> list[SessionMemoryItemRead]:
+        current = now or _utc_now()
+        dismissed: list[SessionMemoryItemRead] = []
+        for item_id in dict.fromkeys(item_ids):
+            item = self._items.get(item_id)
+            if item is None or item.status != "active":
+                continue
+            updated = item.model_copy(
+                update={
+                    "status": "dismissed",
+                    "updated_at": current,
+                    "metadata": {
+                        **item.metadata,
+                        "closeout_action": action,
+                        "closeout_reason": reason,
+                    },
+                }
+            )
+            self._items[item_id] = updated
+            dismissed.append(updated)
+        return dismissed
+
+    def apply_closeout_decisions(
+        self,
+        decisions: list[SessionCloseoutDecision],
+        *,
+        now: datetime | None = None,
+    ) -> list[SessionMemoryItemRead]:
+        dismissed_ids = [
+            decision.session_memory_id
+            for decision in decisions
+            if decision.action in {"discard", "summarize", "promote_candidate"}
+        ]
+        return self.dismiss_items(
+            dismissed_ids,
+            reason="Session closeout decision dismissed this item.",
+            action="session_closeout",
+            now=now,
+        )
 
     def _touch(self, item_id: str) -> None:
         item = self._items[item_id]
@@ -411,14 +467,15 @@ def _session_type_from_memory_type(memory_type: str | None) -> SessionMemoryType
 
 
 def _score_session_item(query_tokens: set[str], item: SessionMemoryItemRead) -> float:
+    base_score = SESSION_TYPE_BASE_SCORES.get(item.memory_type, 0.25)
     if not query_tokens:
-        return 1.0
+        return base_score
     item_tokens = _tokens(" ".join([item.subject, item.content, item.memory_type]))
     overlap = len(query_tokens & item_tokens)
     if overlap == 0:
-        return 0.0
-    type_bonus = 0.5 if item.memory_type in {"task_state", "temporary_rule"} else 0.0
-    return overlap + type_bonus
+        return base_score
+    type_bonus = base_score if item.memory_type in {"task_state", "temporary_rule"} else 0.0
+    return overlap + type_bonus + base_score
 
 
 def _subject_for_session_item(item_type: SessionMemoryType, content: str) -> str:

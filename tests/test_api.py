@@ -2,7 +2,103 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from memory_system import MemoryItemCreate, RetrievalLogCreate, create_app
+from memory_system import (
+    MemoryCandidateCreate,
+    MemoryItemCreate,
+    MemoryRouteItem,
+    RetrievalLogCreate,
+    SessionCloseoutDecision,
+    SessionCloseoutResult,
+    RemoteMemoryRouteResult,
+    SessionMemoryItemCreate,
+    TaskBoundaryDecision,
+    create_app,
+)
+
+
+class _FakeRouteClient:
+    def route_memories(  # noqa: ANN001
+        self,
+        events,
+        *,
+        recent_events=None,
+        current_task_state=None,
+        active_session_memories=None,
+        instructions=None,
+    ):
+        del recent_events, active_session_memories, instructions
+        return RemoteMemoryRouteResult(
+            provider="fake-route",
+            task_boundary=TaskBoundaryDecision(
+                action="same_task",
+                confidence="high",
+                current_task_id=(current_task_state or {}).get("task_id"),
+                current_task_title=(current_task_state or {}).get("title"),
+                reason="The fake client treats the request as same-task continuation.",
+            ),
+            items=[
+                MemoryRouteItem(
+                    route="session",
+                    content="For this run, keep generated route reports in data/.",
+                    reason="Temporary task rule for the current run.",
+                    session_memory_type="temporary_rule",
+                    subject="temporary report location",
+                    source_event_ids=[events[0].id],
+                    time_validity="session",
+                    confidence="confirmed",
+                )
+            ],
+            metadata={"fake": True},
+        )
+
+    def closeout_session_memories(  # noqa: ANN001
+        self,
+        *,
+        session_id,
+        session_memories,
+        task_boundary=None,
+        current_task_state=None,
+        recent_events=None,
+        instructions=None,
+    ):
+        del current_task_state, recent_events, instructions
+        decisions = []
+        for item in session_memories:
+            if item.memory_type == "working_fact":
+                decisions.append(
+                    SessionCloseoutDecision(
+                        session_memory_id=item.id,
+                        action="promote_candidate",
+                        reason="The working fact is reusable after closeout.",
+                        candidate=MemoryCandidateCreate(
+                            content=item.content,
+                            memory_type="project_fact",
+                            scope=item.scope,
+                            subject=item.subject,
+                            source_event_ids=item.source_event_ids,
+                            reason="Promoted by fake closeout judge.",
+                            evidence_type="inferred",
+                            time_validity="persistent",
+                            confidence="likely",
+                        ),
+                    )
+                )
+            else:
+                decisions.append(
+                    SessionCloseoutDecision(
+                        session_memory_id=item.id,
+                        action="discard",
+                        reason="The item is temporary.",
+                    )
+                )
+        return SessionCloseoutResult(
+            provider="fake-closeout",
+            session_id=session_id,
+            task_summary="Closed out the fake session.",
+            task_boundary=task_boundary,
+            decisions=decisions,
+            metadata={"fake": True},
+        )
 
 
 def test_api_event_to_memory_to_context_flow(tmp_path):
@@ -381,3 +477,183 @@ def test_api_task_recall_endpoint(tmp_path):
     assert fact_memory["id"] in memory_ids
     assert pref_memory["id"] in result["context"]["memory_ids"]
     assert fact_memory["id"] in result["context"]["memory_ids"]
+
+
+def test_api_context_compose_includes_session_memory(tmp_path):
+    app = create_app(tmp_path / "memory.sqlite")
+    client = TestClient(app)
+    session_item = app.state.runtime.sessions.add_item(
+        SessionMemoryItemCreate(
+            content="For this run, keep generated route reports in data/.",
+            session_id="s1",
+            memory_type="temporary_rule",
+            scope="repo:C:/workspace/demo",
+            subject="temporary report location",
+            source_event_ids=["evt_session_context"],
+        )
+    )
+
+    response = client.post(
+        "/context/compose",
+        json={
+            "task": "Write the final summary",
+            "session_id": "s1",
+            "session_limit": 3,
+            "token_budget": 1000,
+        },
+    )
+
+    assert response.status_code == 200
+    block = response.json()
+    assert "[session][temporary_rule]" in block["content"]
+    assert "keep generated route reports" in block["content"]
+    assert block["memory_ids"] == []
+    assert block["metadata"]["session_memory_ids"] == session_item.id
+
+
+def test_api_remote_route_persists_session_memory_for_context(tmp_path, monkeypatch):
+    app = create_app(tmp_path / "memory.sqlite")
+    monkeypatch.setattr(app.state.runtime, "remote_llm", lambda: _FakeRouteClient())
+    client = TestClient(app)
+    event = client.post(
+        "/events",
+        json={
+            "event_type": "user_message",
+            "content": "For this run, keep generated route reports in data/.",
+            "source": "conversation",
+            "scope": "repo:C:/workspace/demo",
+        },
+    ).json()
+
+    route_response = client.post(
+        "/remote/route",
+        json={
+            "event_ids": [event["id"]],
+            "session_id": "s-route",
+            "current_task_state": {
+                "task_id": "task_report",
+                "title": "Prepare final report",
+                "status": "active",
+            },
+        },
+    )
+
+    assert route_response.status_code == 200
+    routed = route_response.json()
+    assert routed["metadata"]["session_persisted"] is True
+    assert routed["metadata"]["task_boundary_observed"] is True
+    assert routed["task_boundary"]["action"] == "same_task"
+    assert routed["task_boundary"]["current_task_id"] == "task_report"
+    assert len(routed["session"]) == 1
+
+    context_response = client.post(
+        "/context/compose",
+        json={
+            "task": "Prepare final report",
+            "session_id": "s-route",
+            "session_limit": 3,
+            "token_budget": 1000,
+        },
+    )
+
+    assert context_response.status_code == 200
+    assert "keep generated route reports" in context_response.json()["content"]
+
+
+def test_api_task_recall_includes_session_memory(tmp_path):
+    app = create_app(tmp_path / "memory.sqlite")
+    client = TestClient(app)
+    session_item = app.state.runtime.sessions.add_item(
+        SessionMemoryItemCreate(
+            content="Pending confirmation: run 50 cases or 100 cases next.",
+            session_id="s1",
+            memory_type="pending_decision",
+            scope="repo:C:/workspace/demo",
+            subject="next evaluation size",
+            source_event_ids=["evt_session_recall"],
+        )
+    )
+
+    response = client.post(
+        "/recall/task",
+        json={
+            "task": "Prepare the next evaluation",
+            "scope": "repo:C:/workspace/demo",
+            "session_id": "s1",
+            "session_limit": 2,
+            "token_budget": 1000,
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["memories"] == []
+    assert "[session][pending_decision]" in result["context"]["content"]
+    assert result["context"]["metadata"]["session_memory_ids"] == session_item.id
+
+
+def test_api_session_closeout_uses_llm_decisions(tmp_path, monkeypatch):
+    app = create_app(tmp_path / "memory.sqlite")
+    monkeypatch.setattr(app.state.runtime, "remote_llm", lambda: _FakeRouteClient())
+    client = TestClient(app)
+    working = app.state.runtime.sessions.add_item(
+        SessionMemoryItemCreate(
+            content="The validated route report is stored in data/session_route_eval_50.json.",
+            session_id="s-closeout",
+            memory_type="working_fact",
+            scope="repo:C:/workspace/demo",
+            subject="route report location",
+            source_event_ids=["evt_report"],
+        )
+    )
+    temporary = app.state.runtime.sessions.add_item(
+        SessionMemoryItemCreate(
+            content="For this run, keep the explanation short.",
+            session_id="s-closeout",
+            memory_type="temporary_rule",
+            scope="repo:C:/workspace/demo",
+            subject="temporary explanation rule",
+            source_event_ids=["evt_tmp"],
+        )
+    )
+
+    response = client.post(
+        "/session/closeout",
+        json={
+            "session_id": "s-closeout",
+            "task_boundary": {
+                "action": "task_done",
+                "confidence": "high",
+                "previous_task_status": "done",
+                "reason": "The task is complete.",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["provider"] == "fake-closeout"
+    assert result["metadata"]["dismissed_count"] == 2
+    assert result["metadata"]["promoted_candidate_count"] == 1
+    assert result["remaining_session"] == []
+    actions = {
+        decision["session_memory_id"]: decision["action"]
+        for decision in result["decisions"]
+    }
+    assert actions == {working.id: "promote_candidate", temporary.id: "discard"}
+    promoted = result["promoted_candidates"][0]
+    assert promoted["session_memory_id"] == working.id
+    assert promoted["candidate"]["memory_type"] == "project_fact"
+    assert promoted["decision"]["decision"] in {"write", "ask_user", "reject", "merge", "update"}
+
+    context_response = client.post(
+        "/context/compose",
+        json={
+            "task": "Continue after closeout",
+            "session_id": "s-closeout",
+            "session_limit": 3,
+            "token_budget": 1000,
+        },
+    )
+    assert context_response.status_code == 200
+    assert "session_route_eval_50" not in context_response.json()["content"]

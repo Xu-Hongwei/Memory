@@ -19,6 +19,10 @@
 | `write_policy_time_validity.jsonl` | manual fixture | 16 | 专测 `time_validity` 门禁：`persistent` / `until_changed` 应写入，`session` 应拒绝，`unknown` 应转人工确认 |
 | `write_policy_cn_realistic.jsonl` | `generate_write_policy_cn_realistic.py` | 800 | 中文真实表达补充集，覆盖低证据偏好、泛化不足偏好、日常喜欢反例、排错、流程、环境事实、重复和冲突 |
 | `write_policy_en_realistic.jsonl` | `generate_write_policy_en_realistic.py` | 800 | 英文真实表达补充集，覆盖英文长期偏好、低证据偏好、拒写表达、临时请求、排错、流程、环境事实、重复和冲突 |
+| `session_route.jsonl` | `generate_session_route.py` | 240 | 短期记忆分流测试集，覆盖 session/ignore/long_term/reject/ask_user，以及 6 类 session memory type |
+| `session_route_splitting.jsonl` | `generate_session_route_splitting.py` | 24 | 多信息分流测试集，覆盖单句多原子项和多 event 批量输入下的 long_term/session/ask_user/reject 差分 |
+| `task_boundary.jsonl` | `generate_task_boundary.py` | 46 | 任务边界判断测试集，覆盖 same_task 子步骤、显式切换、完成、取消、短确认和承接下一步 |
+| `session_closeout.jsonl` | `generate_session_closeout.py` | 160 | 短期记忆收尾测试集，覆盖任务完成、取消、切换、待决保留、摘要、升级长期候选和敏感过滤 |
 | `retrieval_context.jsonl` | `generate_retrieval_context.py` | 400 | 本地检索/上下文机制回归，测试 scope、类型过滤、inactive 过滤、排序、预算裁剪和 warning；不作为真实语义召回基准 |
 | `lifecycle.jsonl` | `generate_lifecycle.py` | 300 | 测试 active/stale/archived 等生命周期状态 |
 | `task_recall.jsonl` | `generate_task_recall.py` | 300 | 测试一句任务/query 能召回哪些相关记忆 |
@@ -40,6 +44,9 @@
 python tests\fixtures\golden_cases\generate_write_policy.py
 python tests\fixtures\golden_cases\generate_write_policy_cn_realistic.py
 python tests\fixtures\golden_cases\generate_write_policy_en_realistic.py
+python tests\fixtures\golden_cases\generate_session_route.py
+python tests\fixtures\golden_cases\generate_task_boundary.py
+python tests\fixtures\golden_cases\generate_session_closeout.py
 python tests\fixtures\golden_cases\generate_retrieval_context.py
 python tests\fixtures\golden_cases\generate_lifecycle.py
 python tests\fixtures\golden_cases\generate_task_recall.py
@@ -51,6 +58,7 @@ python tests\fixtures\golden_cases\generate_semantic_retrieval.py
 python tests\fixtures\golden_cases\generate_semantic_retrieval_v2.py
 python tests\fixtures\golden_cases\generate_semantic_retrieval_cn.py
 python tests\fixtures\golden_cases\generate_semantic_retrieval_public.py
+python tests\fixtures\golden_cases\generate_session_route_splitting.py
 ```
 
 生成后建议立刻跑一次重复审计和相关测试：
@@ -59,7 +67,7 @@ python tests\fixtures\golden_cases\generate_semantic_retrieval_public.py
 python tests\fixtures\golden_cases\audit_golden_cases.py
 python tests\fixtures\golden_cases\audit_golden_cases.py --strict
 python tests\fixtures\golden_cases\audit_golden_cases.py --show-template-groups 5
-python -m pytest tests\test_golden_write_policy.py tests\test_golden_write_policy_cn_realistic.py tests\test_golden_write_policy_en_realistic.py tests\test_golden_retrieval_context.py tests\test_golden_lifecycle.py tests\test_golden_task_recall.py tests\test_golden_consolidation.py tests\test_golden_graph_recall.py tests\test_golden_graph_conflicts.py tests\test_golden_conflict_reviews.py tests\test_remote_adapters.py -q
+python -m pytest tests\test_golden_write_policy.py tests\test_golden_write_policy_cn_realistic.py tests\test_golden_write_policy_en_realistic.py tests\test_golden_session_route.py tests\test_golden_session_route_splitting.py tests\test_golden_task_boundary.py tests\test_golden_session_closeout.py tests\test_golden_retrieval_context.py tests\test_golden_lifecycle.py tests\test_golden_task_recall.py tests\test_golden_consolidation.py tests\test_golden_graph_recall.py tests\test_golden_graph_conflicts.py tests\test_golden_conflict_reviews.py tests\test_remote_adapters.py -q
 ```
 
 `--strict` 会允许 semantic retrieval 四个 fixture 的 memory content 重复，也允许 `write_policy.jsonl` 的 `merge_duplicate` / `ask_conflict` 类别，以及 `write_policy_en_realistic.jsonl` 的 `en_merge_duplicate` / `en_ask_conflict` 类别复用同一事实。除此之外，重复 case name、重复输入文本、重复 memory content 会被视为异常。
@@ -72,6 +80,14 @@ python -m pytest tests\test_golden_write_policy.py tests\test_golden_write_polic
 
 `write_policy_en_realistic.jsonl` 要求 800 条事件文本全部唯一且包含英文字母，并且不包含中文字符。它同样带有 `scenario`、`utterance_style` 和 `source_family` 标注。当前这组补充集覆盖 193 个场景标签、28 种表达风格和 6 个来源族，用来约束 `going forward`、`maybe I prefer`、`do not treat this as a preference`、`for this run`、`Problem / Lesson / Solution / Verified` 等英文写入边界。
 
+`session_route.jsonl` 固定为 240 条，专门测试远程分流阶段是否能把 event 路由到 `session`、`ignore`、`long_term`、`reject` 或 `ask_user`。其中 `session` 样本覆盖 `task_state`、`temporary_rule`、`working_fact`、`pending_decision`、`emotional_state` 和 `scratch_note` 六类；`ignore` 覆盖简单确认和低价值闲聊；`long_term` 用作长期偏好/固定流程对照；`reject` 使用 `[REDACTED]` 占位符测试敏感 preflight；`ask_user` 覆盖当前必须先确认再继续的阻塞决策。默认测试只做 fixture 结构和本地 fallback 子集校验，不依赖真实远程模型。
+
+`session_route_splitting.jsonl` 固定为 24 条，专门补足单句多信息和多 event 批量输入场景。每条 case 至少包含一个 `long_term` 和一个 `session` expected item，部分 case 额外包含 `ask_user` 或 `reject`，用于检查远程模型是否会把复合信息拆成多个原子 route item，而不是只选一个主路由。
+
+`task_boundary.jsonl` 固定为 46 条，专门测试 `route_memories()` 返回的观察型 `task_boundary`。它把“测试一下、验证一下、举例、同步文档、修一下”这类当前任务子步骤和“接下来做 X、换成 X、这部分完成/取消”这类真正边界分开。当前本地 boundary gate 是 soft gate：不再靠子步骤关键词强制改判，只兜底明确完成/取消/切换和弱证据降置信。
+
+`session_closeout.jsonl` 固定为 160 条，专门测试任务结束、取消、切换或仍待确认时，已有短期记忆应被 `keep / discard / summarize / promote_candidate` 如何收尾。每条 case 包含 2 条 session memory，并用 alias 对齐预期动作；敏感样本只使用 `[REDACTED]` 占位，允许被远程 preflight 过滤成 `missing`，但禁止升级为长期候选。
+
 ## 如何使用
 
 本地规则和结构校验：
@@ -81,6 +97,9 @@ python -m pytest tests\test_golden_write_policy.py -q
 python -m pytest tests\test_golden_write_policy_time_validity.py -q
 python -m pytest tests\test_golden_write_policy_cn_realistic.py -q
 python -m pytest tests\test_golden_write_policy_en_realistic.py -q
+python -m pytest tests\test_golden_session_route.py -q
+python -m pytest tests\test_golden_session_route_splitting.py -q
+python -m pytest tests\test_golden_session_closeout.py -q
 python -m pytest tests\test_golden_retrieval_context.py -q
 python -m pytest tests\test_golden_lifecycle.py -q
 python -m pytest tests\test_golden_task_recall.py -q
@@ -102,6 +121,24 @@ python tools\evaluate_remote_local_conflicts.py --batch-size 10 --batches 5
 `evaluate_write_gate.py` 默认读取 `write_policy.jsonl`、`write_policy_time_validity.jsonl`、`write_policy_cn_realistic.jsonl` 和 `write_policy_en_realistic.jsonl`。本地模式只验证规则候选与门禁决策；`--remote` 会把同一批样本先交给远程模型提候选，再用本地门禁判断 `write / ask_user / merge / reject`，适合统计远程模型是少误写、多漏提，还是会引入噪声。远程模式支持 `--case-concurrency`，含义和召回评估里的第一层并发一致：同时跑多少条 case，每条 case 各自完成 LLM 候选提取和本地 gate。
 
 `evaluate_remote_local_conflicts.py` 会固定随机抽样并按批次输出本地与 `remote_after_gate` 的差异，适合复测远程模型是否和本地门禁冲突。它依赖真实远程额度；如果远程服务返回配额或网络错误，这部分结果只能说明远程不可用，不能当成模型质量统计。
+
+短期记忆分流统计：
+
+```powershell
+python tools\evaluate_session_route.py --fixture tests\fixtures\golden_cases\session_route.jsonl --sample-size 50 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data\session_route_eval_50.json
+python tools\evaluate_session_route.py --fixture tests\fixtures\golden_cases\session_route.jsonl --category en_session_pending_decision --category cn_ask_user_blocking_decision --category en_long_term_project_rule --case-concurrency 4 --failure-limit 20 --report-path data\session_route_eval_targeted.json
+python tools\evaluate_session_route_splitting.py --fixture tests\fixtures\golden_cases\session_route_splitting.jsonl --case-concurrency 4 --failure-limit 20 --report-path data\session_route_splitting_eval_24.json
+python tools\evaluate_task_boundary.py --fixture tests\fixtures\golden_cases\task_boundary.jsonl --case-concurrency 4 --failure-limit 20 --report-path data\task_boundary_eval_46.json
+python tools\evaluate_session_closeout.py --fixture tests\fixtures\golden_cases\session_closeout.jsonl --sample-per-category 1 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data\session_closeout_eval_16.json
+```
+
+`evaluate_session_route.py` 直接测试 `RemoteLLMClient.route_memories()` 的真实远程分流结果，统计 route accuracy、strict accuracy、serious failures 和按 category 的细分表现。route accuracy 看主路由是否正确，也就是 long_term / session / ignore / reject / ask_user 是否分对；strict accuracy 还会要求长期 `memory_type` 或短期 `session_memory_type` 完全命中。当前同 seed 50 条远程验收结果是 route `50/50`、strict `42/50`、serious `0`；剩余 strict mismatch 主要是 `scratch_note` vs `temporary_rule`、`workflow` vs `project_fact` 这类细分类漂移。
+
+`evaluate_session_route_splitting.py` 用同一次远程请求处理 case 内全部 events，并按 expected item 逐项匹配实际 route item。2026-04-30 的 24 条真实远程验收结果为 route case `24/24`、route item `57/57`、strict item `51/57`、serious `0`；剩余问题主要是短期细分类漂移和少量重复 long_term 噪声。
+
+`evaluate_task_boundary.py` 直接测试 `RemoteLLMClient.route_memories()` 返回的 `task_boundary`。2026-04-30 的 46 条真实远程 soft gate 验收结果为 action `46/46`、strict `46/46`，报告保存在 `data\task_boundary_eval_soft_46_final.json`。
+
+`evaluate_session_closeout.py` 直接测试 `RemoteLLMClient.closeout_session_memories()`。它会临时创建 `SessionMemoryStore`，把 fixture 中的 alias 映射到真实 session memory id，再统计 action accuracy、strict accuracy、candidate type mismatch、forbidden promotion、unsafe promotion、missing decisions 和按 category 的表现。2026-04-30 的 16 条分层真实远程 smoke 结果为 case `16/16`、action item `32/32`、strict item `32/32`、unsafe promotion `0`，报告保存在 `data\session_closeout_eval_16.json`。
 
 `retrieval_context.jsonl` 的定位要和语义召回集分开看：它是 plumbing regression，也就是保底层机制不坏。里面的 `RET_SCOPE_000`、`CONTEXT_WARN_029` 这类标记是人工唯一标识，目的是稳定验证 scope 优先级、类型过滤、inactive 排除、上下文预算和 warning。它不证明系统能理解真实自然语言；真实语义召回应优先看 `semantic_retrieval_cn.jsonl`、`semantic_retrieval_v2.jsonl` 和 `semantic_retrieval_public.jsonl`。
 

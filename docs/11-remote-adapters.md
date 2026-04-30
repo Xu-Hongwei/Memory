@@ -28,6 +28,7 @@ RemoteHTTPClient
 RemoteLLMClient
 RemoteEmbeddingClient
 RemoteMemoryRouteResult
+RecallPlan
 RemoteCandidateImportResult
 RemoteCandidateEvaluationResult
 ```
@@ -175,9 +176,54 @@ https://dashscope.aliyuncs.com/api/v1/services/embeddings/multimodal-embedding/m
 
 这层治理只处理高置信边界，不替代后续写入门禁。即使远程候选被导入，也只会进入 `pending`，仍需本地 policy evaluate 和 commit。`extract_candidates` 和依赖它的 `remote extract/import` 当前保留为 legacy long-term-only 调试入口。
 
+## 3.1.1 远程召回 Planner 契约
+
+当前统一召回入口会优先使用 `RemoteLLMClient.plan_recall(...)` 生成 `RecallPlan`，再决定后续检索策略。这个 planner 不直接返回记忆，也不直接决定注入内容，只负责把自然语言任务拆成可执行的召回计划。
+
+请求结构：
+
+```json
+{
+  "schema": "memory_system.remote_recall_planner.v1",
+  "task": "这个项目启动失败了，帮我排查",
+  "scope": "repo:C:/workspace/demo",
+  "limit_per_query": 5,
+  "model": "deepseek-v4-flash"
+}
+```
+
+期望返回结构会被解析为 `RecallPlan`：
+
+```json
+{
+  "intent": "debugging",
+  "query_terms": ["项目启动失败", "启动命令", "排错经验"],
+  "memory_types": ["troubleshooting", "environment_fact", "project_fact", "tool_rule"],
+  "scopes": ["repo:C:/workspace/demo", "global"],
+  "facets": ["startup", "debugging"],
+  "identifiers": ["package.json"],
+  "constraints": {"prefer_verified": true},
+  "strategy_hint": "guarded_hybrid",
+  "include_graph": true,
+  "include_session": true,
+  "needs_llm_judge": true,
+  "confidence": 0.82,
+  "reasons": ["启动失败需要优先召回排错经验、环境事实和启动流程。"]
+}
+```
+
+本地接收后继续做保护：
+
+- 敏感 query 不会发送到远程 planner。
+- 远程 planner 输出必须落在本地 schema 允许的 `memory_type` 和 `strategy_hint` 范围内。
+- `strategy_hint` 只是建议，不会绕过客户端可用性判断；没有 remote embedding 时会降级为 keyword。
+- `include_graph` 采用强门控，必须同时得到调用方允许和 planner 建议才执行图谱召回。
+- `include_session` 采用软门控，planner 不建议 session 时不会完全关闭短期记忆，只会把本轮 session 召回限制到 1 条。
+- 远程 planner 失败时，`orchestrate_recall(...)` 会回退本地 `RecallPlanner`，并在 `planner_warnings` 中记录 `remote_planner_failed:*`。
+
 ## 3.2 统一远程分流契约
 
-当前推荐入口是 `RemoteLLMClient.route_memories(events, recent_events=...)`。它一次远程调用可以处理多条 event，并要求模型把每个原子信息分到以下路线：
+当前推荐入口是 `RemoteLLMClient.route_memories(events, recent_events=..., current_task_state=...)`。它一次远程调用可以处理多条 event，并要求模型把每个原子信息分到以下路线：
 
 ```text
 long_term   稳定、可复用、适合进入长期候选的记忆
@@ -194,6 +240,12 @@ ask_user    当前必须先向用户确认才能继续的内容
   "schema": "memory_system.remote_memory_route.v1",
   "events": ["... EventRead ..."],
   "recent_events": ["... context-only EventRead ..."],
+  "current_task_state": {
+    "task_id": "task_123",
+    "title": "当前任务标题",
+    "status": "active"
+  },
+  "active_session_memories": ["... optional session items ..."],
   "routes": {
     "long_term": "Stable reusable memory for future conversations or tasks.",
     "session": "Useful only for the current conversation or task.",
@@ -212,12 +264,16 @@ ask_user    当前必须先向用户确认才能继续的内容
 }
 ```
 
-返回结构是 `RemoteMemoryRouteResult.items[]`，每项包含 `route`、`content`、`reason`，并在需要时带上 `memory_type`、`session_memory_type`、`scope`、`subject`、`source_event_ids`、`claim`、`evidence_type`、`time_validity`、`reuse_cases`、`scores`、`confidence` 和 `risk`。
+Route input policy: `events` are writable source events, while `recent_events` are read-only context. The LLM may use `recent_events` to resolve references, distinguish long-term versus session memory, and judge `task_boundary`, but every non-ignore route item must cite at least one current `events[].id` in `source_event_ids`. Items that only cite `recent_events` are filtered locally with `filtered_context_only_route_item`.
+
+Task boundary policy: the remote model returns the initial `task_boundary`, then the local adapter applies a soft boundary gate. The local gate keeps schema normalization and a few high-confidence boundary signals such as explicit cancel, done, or switch instructions. It no longer tries to classify testing, explaining, docs sync, or repair requests by a local substep keyword list; those semantic decisions are left to the remote model. If the model proposes `new_task` or `switch_task` without an explicit target and without high confidence, the gate weakens the result to `unclear` and records `weakened_task_boundary_switch_evidence`.
+
+返回结构包含 `RemoteMemoryRouteResult.items[]` 和可选 `task_boundary`。每个 item 包含 `route`、`content`、`reason`，并在需要时带上 `memory_type`、`session_memory_type`、`scope`、`subject`、`source_event_ids`、`claim`、`evidence_type`、`time_validity`、`reuse_cases`、`scores`、`confidence` 和 `risk`。`task_boundary` 是观察型结果，包含 `same_task/new_task/switch_task/task_done/task_cancelled/unclear/no_change`、置信度、当前任务和下一任务标题；默认只返回和记录，不自动切换任务。任务结束后的短期记忆清理和沉淀由 `/session/closeout` 显式触发。
 
 本地接收后继续分层处理：
 
 - `long_term`：转为 `MemoryCandidateCreate`，只创建 pending candidate，再执行本地 `evaluate_candidate`，不会自动 commit。
-- `session`：转为 `SessionMemoryItemCreate`，作为当前会话短期记忆返回；当前 CLI/API 响应里 `session_persisted=false`。
+- `session`：转为 `SessionMemoryItemCreate`。API 会写入运行期 `SessionMemoryStore`，后续 `/context/compose` 和 `/recall/task` 可按 `session_id` 搜索并优先注入上下文；CLI 仍只在本次命令响应里返回。
 - `ignore/reject/ask_user`：只返回分流结果，不写入长期记忆。
 
 敏感事件仍会在远程请求前被本地 preflight 拦截；远程返回中的异常字段会被规范化，例如把误放到 `memory_type` 的 `temporary_rule` 移到 `session_memory_type`。
@@ -277,6 +333,7 @@ ask_user    当前必须先向用户确认才能继续的内容
 GET  /remote/status
 GET  /remote/health
 POST /remote/route
+POST /session/closeout
 POST /remote/extract/{event_id}
 POST /remote/embed
 POST /remote/evaluate-candidates
@@ -285,9 +342,16 @@ POST /candidates/from-event/{event_id}/remote
 POST /memories/embeddings/remote-backfill
 POST /memories/search/remote-hybrid
 POST /memories/search/remote-guarded-hybrid
+POST /memories/search/remote-llm-guarded-hybrid
+POST /memories/search/remote-selective-llm-guarded-hybrid
+POST /recall/orchestrated
 ```
 
-`/remote/route` 是推荐的远程分流入口：请求体传入 `event_ids`、可选 `recent_event_ids` 和 `session_id`，响应会把长期候选、短期会话记忆、忽略项、拒绝项和待确认项分开返回。长期项只创建 pending candidate 并附带本地 policy decision；短期项当前只在响应中返回，不持久化。
+`/remote/route` 是推荐的远程分流入口：请求体传入 `event_ids`、可选 `recent_event_ids` 和 `session_id`，响应会把长期候选、短期会话记忆、忽略项、拒绝项和待确认项分开返回。长期项只创建 pending candidate 并附带本地 policy decision；短期项会写入运行期 `SessionMemoryStore`，供 `/context/compose`、`/recall/task`、`/recall/orchestrated` 和 `/session/closeout` 使用。
+
+`/session/closeout` 是短期记忆退出口。它把当前 session memory、`task_boundary`、`current_task_state` 和可选 recent events 交给远程 LLM，逐条返回 `keep / discard / summarize / promote_candidate`。本地只执行结构校验、dismiss 和 pending candidate 创建；`promote_candidate` 仍然要继续经过本地 policy gate，不会直接写入长期记忆。
+
+`/recall/orchestrated` 是推荐的智能体召回入口。请求中的 `use_remote_planner` 默认为 true：远程 LLM 可用时会先生成 `RecallPlan`，不可用时静默回退本地 planner；`use_remote=true` 才会同时启用 remote embedding 和可选 LLM judge。这样可以让“召回计划智能化”和“远程向量检索”分开控制。
 
 `/remote/extract/{event_id}` 是 legacy dry-run：它只返回远程长期候选，不会写入 `memory_candidates`。如果要写入，后续应显式调用本地候选创建和写入门禁流程。
 
@@ -324,6 +388,7 @@ memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixt
 memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --json
 memoryctl --db data/memory.sqlite remote evaluate-retrieval --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --embedding-cache data/eval_embedding_cache.jsonl --report-path data/retrieval_report.json --case-concurrency 4 --judge-group-size 4 --judge-concurrency 2 --json
 python tools/benchmark_remote_retrieval.py --fixture tests/fixtures/golden_cases/semantic_retrieval_public.jsonl --limit 60 --embedding-cache data/benchmark_remote_retrieval_embeddings.jsonl --output-dir data/remote_retrieval_benchmarks --case-concurrency 4
+python tools/evaluate_session_closeout.py --fixture tests/fixtures/golden_cases/session_closeout.jsonl --sample-per-category 1 --sample-seed 20260430 --case-concurrency 4 --failure-limit 20 --report-path data/session_closeout_eval_16.json
 ```
 
 `remote evaluate` 会同时运行本地规则 preview 和远程 LLM 提取，并返回差异报告；它不会写入 `memory_candidates`。
@@ -350,12 +415,14 @@ python -m pytest tests/test_remote_adapters.py
 
 - `RemoteLLMClient` 能发送 event 并解析候选记忆。
 - `RemoteEmbeddingClient` 能解析项目格式和 OpenAI-style embedding 响应。
+- `RemoteLLMClient.plan_recall` 能解析 OpenAI-compatible planner 输出，并生成带 `planner_source=remote` 的 `RecallPlan`。
 - API / CLI 能把单条长期记忆写入 `memory_embeddings` 向量缓存。
 - API / CLI 能对 query 生成远程 embedding，并执行本地 hybrid search。
 - API / CLI `remote route` 能把同一批 event 分流为长期候选、短期记忆、忽略和拒绝，并保持长期候选只进 pending。
 - API 远程提取保持 dry-run，不自动写库。
 - API 远程导入作为 legacy long-term-only 入口，只写 pending candidate，不自动 commit 长期记忆。
 - API 远程评估只读，不创建候选记忆。
+- API `/recall/orchestrated` 能在启用远程 planner 时优先使用 LLM planner，并在远程不可用时回退本地 planner。
 - CLI `remote status` 不泄露 API key。
 - CLI `remote route` 能从事件日志读取多条 event 并调用远程分流。
 - CLI `remote extract` 能从事件日志读取 event 并调用 legacy 长期候选提取。
@@ -410,6 +477,7 @@ Current embedding retrieval additions:
 - `tests/fixtures/golden_cases/generate_semantic_retrieval.py` generates the 50-case `semantic_retrieval.jsonl` paraphrase fixture for checking whether semantic / hybrid retrieval reduces keyword false negatives.
 - `tests/fixtures/golden_cases/generate_semantic_retrieval_v2.py` generates the 200-case `semantic_retrieval_v2.jsonl` fixture, including daily chat preference/habit cases and no-match cases.
 - `tests/fixtures/golden_cases/generate_semantic_retrieval_public.py` generates the 300-case `semantic_retrieval_public.jsonl` fixture, inspired by LongMemEval, LoCoMo, and RealMemBench task shapes without copying public dataset rows.
+- `tests/fixtures/golden_cases/generate_session_closeout.py` generates the 160-case `session_closeout.jsonl` fixture for checking keep/discard/summarize/promote_candidate decisions at session-memory closeout.
 - `remote guarded-hybrid-search` and `POST /memories/search/remote-guarded-hybrid` add a second-stage guard that rejects low-similarity results, uses lightweight local intent rerank for close scores, and marks unresolved close matches as ambiguous.
 - `remote evaluate-retrieval` and `POST /remote/evaluate-retrieval` compare keyword / semantic / hybrid / guarded_hybrid, and can optionally include `llm_guarded_hybrid` or `selective_llm_guarded_hybrid`. Reports include false negatives, unexpected aliases, ambiguous candidates, top-1 hits, judge call counts, per-category summaries, per-item warnings, embedding-cache metadata, prefetch metadata, worker count, and judge concurrency metadata.
 - `tools/benchmark_remote_retrieval.py` runs a fixed remote retrieval speed matrix, writes one JSON report per configuration plus `summary.json`, and includes failure-case samples for the target mode.
